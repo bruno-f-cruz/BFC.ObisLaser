@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WorkflowBuilder Version="2.9.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:obis="clr-namespace:BFC.ObisLaser;assembly=BFC.ObisLaser" xmlns="https://bonsai-rx.org/2018/workflow">
+  <Description>Sends a new power setpoint whenever Watts changes. Edit Watts while the workflow runs to change the laser power online.</Description>
+  <Workflow>
+    <Nodes>
+      <Expression xsi:type="ExternalizedMapping">
+        <Property Name="Value" DisplayName="Watts" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="DoubleProperty">
+          <Value>0.01</Value>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="InputMapping">
+        <PropertyMappings>
+          <Property Name="Watts" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="obis:CreateCommand">
+        <obis:Channel>0</obis:Channel>
+        <obis:Command xsi:type="obis:SetPower">
+          <obis:Watts>0.01</obis:Watts>
+        </obis:Command>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="obis:SendCommand">
+          <obis:PortName>COM3</obis:PortName>
+          <obis:Timeout>PT1S</obis:Timeout>
+          <obis:MaxPendingCommands>64</obis:MaxPendingCommands>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="WorkflowOutput" />
+    </Nodes>
+    <Edges>
+      <Edge From="0" To="1" Label="Source1" />
+      <Edge From="1" To="2" Label="Source1" />
+      <Edge From="2" To="3" Label="Source1" />
+      <Edge From="3" To="4" Label="Source1" />
+      <Edge From="4" To="5" Label="Source1" />
+    </Edges>
+  </Workflow>
+</WorkflowBuilder>

@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WorkflowBuilder Version="2.9.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:obis="clr-namespace:BFC.ObisLaser;assembly=BFC.ObisLaser" xmlns:rx="clr-namespace:Bonsai.Reactive;assembly=Bonsai.Core" xmlns="https://bonsai-rx.org/2018/workflow">
+  <Description>Shares one connection between two senders: lasers 1 and 2 behind an OBIS Remote or LaserBox. Set PortName on CreateObisConnection.</Description>
+  <Workflow>
+    <Nodes>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="obis:CreateObisConnection">
+          <obis:PortName>COM3</obis:PortName>
+          <obis:Timeout>PT1S</obis:Timeout>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="rx:ResourceSubject">
+        <Name>Lasers</Name>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Timer">
+          <rx:DueTime>PT0S</rx:DueTime>
+          <rx:Period>PT1S</rx:Period>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="obis:CreateCommand">
+        <obis:Channel>1</obis:Channel>
+        <obis:Command xsi:type="obis:GetPower" />
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>Lasers</Name>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="obis:SendCommand">
+          <obis:Timeout>PT1S</obis:Timeout>
+          <obis:MaxPendingCommands>64</obis:MaxPendingCommands>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="obis:ParseReply">
+        <obis:Command>GetPower</obis:Command>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Timer">
+          <rx:DueTime>PT0S</rx:DueTime>
+          <rx:Period>PT1S</rx:Period>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="obis:CreateCommand">
+        <obis:Channel>2</obis:Channel>
+        <obis:Command xsi:type="obis:GetPower" />
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>Lasers</Name>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="obis:SendCommand">
+          <obis:Timeout>PT1S</obis:Timeout>
+          <obis:MaxPendingCommands>64</obis:MaxPendingCommands>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="obis:ParseReply">
+        <obis:Command>GetPower</obis:Command>
+      </Expression>
+    </Nodes>
+    <Edges>
+      <Edge From="0" To="1" Label="Source1" />
+      <Edge From="2" To="3" Label="Source1" />
+      <Edge From="3" To="5" Label="Source1" />
+      <Edge From="4" To="5" Label="Source2" />
+      <Edge From="5" To="6" Label="Source1" />
+      <Edge From="7" To="8" Label="Source1" />
+      <Edge From="8" To="10" Label="Source1" />
+      <Edge From="9" To="10" Label="Source2" />
+      <Edge From="10" To="11" Label="Source1" />
+    </Edges>
+  </Workflow>
+</WorkflowBuilder>

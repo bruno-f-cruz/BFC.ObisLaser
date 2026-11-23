@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WorkflowBuilder Version="2.9.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:obis="clr-namespace:BFC.ObisLaser;assembly=BFC.ObisLaser" xmlns:rx="clr-namespace:Bonsai.Reactive;assembly=Bonsai.Core" xmlns="https://bonsai-rx.org/2018/workflow">
+  <Description>Selects constant power mode, sets 10 mW and turns emission on, stopping if the laser rejects any command. Emission stays on after the workflow stops; run a SetEmission command with Enabled = False to turn it off.</Description>
+  <Workflow>
+    <Nodes>
+      <Expression xsi:type="obis:CreateCommand">
+        <obis:Channel>0</obis:Channel>
+        <obis:Command xsi:type="obis:SetOperatingMode">
+          <obis:Mode>Cwp</obis:Mode>
+        </obis:Command>
+      </Expression>
+      <Expression xsi:type="obis:CreateCommand">
+        <obis:Channel>0</obis:Channel>
+        <obis:Command xsi:type="obis:SetPower">
+          <obis:Watts>0.01</obis:Watts>
+        </obis:Command>
+      </Expression>
+      <Expression xsi:type="obis:CreateCommand">
+        <obis:Channel>0</obis:Channel>
+        <obis:Command xsi:type="obis:SetEmission">
+          <obis:Enabled>true</obis:Enabled>
+        </obis:Command>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Concat" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="obis:SendCommand">
+          <obis:PortName>COM3</obis:PortName>
+          <obis:Timeout>PT1S</obis:Timeout>
+          <obis:MaxPendingCommands>64</obis:MaxPendingCommands>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="obis:EnsureSuccess" />
+      </Expression>
+      <Expression xsi:type="WorkflowOutput" />
+    </Nodes>
+    <Edges>
+      <Edge From="0" To="3" Label="Source1" />
+      <Edge From="1" To="3" Label="Source2" />
+      <Edge From="2" To="3" Label="Source3" />
+      <Edge From="3" To="4" Label="Source1" />
+      <Edge From="4" To="5" Label="Source1" />
+      <Edge From="5" To="6" Label="Source1" />
+    </Edges>
+  </Workflow>
+</WorkflowBuilder>

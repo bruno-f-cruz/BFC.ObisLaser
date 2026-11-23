@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <PackageTags>Bonsai Rx OBIS Coherent Laser</PackageTags>
+    <PackageProjectUrl>https://bruno-f-cruz.github.io/BFC.ObisLaser/</PackageProjectUrl>
+
+    <Authors>Bruno F. Cruz</Authors>
+    <Copyright>Copyright (c) 2026 Bruno F. Cruz</Copyright>
+  </PropertyGroup>
+</Project>
