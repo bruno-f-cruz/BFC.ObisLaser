@@ -43,3 +43,7 @@ To control several lasers, add one `ObisLaserVisualizer` per laser, each with it
 ## Choose the laser while the workflow runs
 
 When the channel is only known once the workflow runs, for example from the devices found by `FindDevices`, connect the channel to a second input of `ObisLaserVisualizer`. `Channel` is then ignored: the panel shows "No laser is assigned to this panel" until the first channel arrives, and each new channel starts a new session, which requests the device information and state again.
+
+## Draw the dashboard in your own window
+
+To show several lasers in one window, for example as tabs of a Bonsai.ImGui visualizer, create one `ObisLaserController` per laser in your own code instead of `ObisLaserVisualizer` nodes. Send its `Commands` to the `Device` of the laser, pass the replies to `Receive`, and call `Draw` on each frame, for example inside `ImGui.BeginTabItem`. `Draw` fills the space available and does not change the style or colors of your ImGui context. Dispose the controller to stop polling the laser.
