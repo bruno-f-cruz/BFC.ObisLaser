@@ -158,7 +158,7 @@ internal sealed class ObisLaserPanel
     // Controls: emission switch, power slider and operating mode.
     void DrawControls(ObisLaserSession session, LaserState? state, DeviceInfo? info, Vector4 color)
     {
-        BeginCard("controls");
+        ImGui.Spacing();
         var labelWidth = Px(64);
 
         // Emission: shows the requested value until the laser reports it, or for a few seconds.
@@ -188,7 +188,7 @@ internal sealed class ObisLaserPanel
         ImGui.TextUnformatted("Power");
         ImGui.SameLine(labelWidth);
         var inputWidth = Px(84);
-        var sliderWidth = Math.Min(Px(360), ImGui.GetContentRegionAvail().X - inputWidth - ImGui.GetStyle().ItemSpacing.X);
+        var sliderWidth = ImGui.GetContentRegionAvail().X - inputWidth - ImGui.GetStyle().ItemSpacing.X;
         var shown = float.IsNaN(powerMilliwatts) ? (float.IsNaN(setpoint) ? 0 : setpoint) : powerMilliwatts;
         if (PowerSlider("##power", ref shown, maxMilliwatts, sliderWidth, color, state is not null)) powerMilliwatts = shown;
         var sliderReleased = ImGui.IsItemDeactivatedAfterEdit();
@@ -224,7 +224,7 @@ internal sealed class ObisLaserPanel
             ImGui.SetItemTooltip(description + " Stored in the laser.");
         }
 
-        EndCard();
+        ImGui.Spacing();
     }
 
     // A slider with a track filled up to the value in the color of the laser.
@@ -252,34 +252,48 @@ internal sealed class ObisLaserPanel
     }
 
     // Readings: live values as tiles, as many per row as fit.
+    // Readings: one small table spanning the window, a label row and a value row.
     static void DrawReadings(ObisLaserSession session, LaserState? state, DeviceInfo? info, Vector4 color)
     {
-        var tiles = new List<(string Label, string Value, Vector4 Color, string? Detail)>
+        var limits = session.GetValue<TemperatureLimits>(nameof(GetBaseplateTemperatureLimits));
+        var readings = new (string Label, string Value, Vector4 Color, string? Detail)[]
         {
             ("Output power", state is null ? "-" : FormatMilliwatts(state.Power), state?.Emission == true ? color : Text,
-                state is null || state.PowerSetpoint <= 0 || !state.Emission ? null : string.Format(Invariant, "{0:0.0}% of setpoint", 100 * state.Power / state.PowerSetpoint)),
+                state is null || state.PowerSetpoint <= 0 || !state.Emission ? null : string.Format(Invariant, "{0:0}% of set", 100 * state.Power / state.PowerSetpoint)),
             ("Setpoint", state is null ? "-" : FormatMilliwatts(state.PowerSetpoint), Text,
-                info is null || state is null ? null : string.Format(Invariant, "{0:0.0}% of maximum", 100 * state.PowerSetpoint / info.MaxPower)),
+                info is null || state is null ? null : string.Format(Invariant, "{0:0.#}% of max", 100 * state.PowerSetpoint / info.MaxPower)),
             ("Diode current", state is null ? "-" : string.Format(Invariant, "{0:0.0} mA", state.Current * 1000), Text, null),
             ("Base plate", state is null ? "-" : string.Format(Invariant, "{0:0.0} °C", state.BaseplateTemperature),
-                TemperatureColor(state?.BaseplateTemperature, session.GetValue<TemperatureLimits>(nameof(GetBaseplateTemperatureLimits))),
-                session.GetValue<TemperatureLimits>(nameof(GetBaseplateTemperatureLimits)) is { } limits ? string.Format(Invariant, "limits {0:0} to {1:0} °C", limits.Low, limits.High) : null),
-            ("Operating hours", session.GetValue<double>(nameof(GetHours)) is { } hours ? hours.ToString("N0", Invariant) + " h" : "-", Text,
-                session.GetValue<double>(nameof(GetDiodeHours)) is { } diodeHours ? diodeHours.ToString("N0", Invariant) + " h on the diode" : null),
+                TemperatureColor(state?.BaseplateTemperature, limits),
+                limits is { } range ? string.Format(Invariant, "max {0:0} °C", range.High) : null),
+            ("Hours", session.GetValue<double>(nameof(GetHours)) is { } hours ? hours.ToString("N0", Invariant) + " h" : "-", Text,
+                session.GetValue<double>(nameof(GetDiodeHours)) is { } diodeHours ? diodeHours.ToString("N0", Invariant) + " h diode" : null),
         };
 
-        var spacing = ImGui.GetStyle().ItemSpacing.X;
-        var available = ImGui.GetContentRegionAvail().X;
-        var width = Px(128);
-        var columns = Math.Max(1, Math.Min(tiles.Count, (int)((available + spacing) / (width + spacing))));
-        var style = ImGui.GetStyle();
-        var height = ImGui.GetFontSize() * (2 + TileValueScale) + style.ItemSpacing.Y * 2 + style.WindowPadding.Y * 2 + Px(2);
-        for (int i = 0; i < tiles.Count; i++)
+        const ImGuiTableFlags Flags = ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.BordersOuterH | ImGuiTableFlags.SizingStretchSame;
+        if (!ImGui.BeginTable("##readings", readings.Length, Flags)) return;
+        ImGui.TableNextRow();
+        for (int i = 0; i < readings.Length; i++)
         {
-            if (i % columns != 0) ImGui.SameLine();
-            var tile = tiles[i];
-            Tile($"##tile{i}", tile.Label, tile.Value, tile.Color, new Vector2(width, height), tile.Detail ?? " ");
+            ImGui.TableSetColumnIndex(i);
+            ColoredText(Muted, readings[i].Label);
         }
+
+        ImGui.TableNextRow();
+        for (int i = 0; i < readings.Length; i++)
+        {
+            ImGui.TableSetColumnIndex(i);
+            PushBold();
+            ColoredText(readings[i].Color, readings[i].Value);
+            ImGui.PopFont();
+            if (readings[i].Detail is { } detail)
+            {
+                ImGui.SameLine();
+                ColoredText(Muted, detail);
+            }
+        }
+
+        ImGui.EndTable();
     }
 
     static Vector4 TemperatureColor(double? temperature, TemperatureLimits? limits)
@@ -330,13 +344,13 @@ internal sealed class ObisLaserPanel
         };
 
         var pairs = ImGui.GetContentRegionAvail().X > Px(480) ? 2 : 1;
-        const ImGuiTableFlags Flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoHostExtendX;
+        const ImGuiTableFlags Flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp;
         if (ImGui.BeginTable("##info", pairs * 2, Flags))
         {
             for (int pair = 0; pair < pairs; pair++)
             {
-                ImGui.TableSetupColumn($"Name{pair}", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn($"Value{pair}", ImGuiTableColumnFlags.WidthFixed, Px(150));
+                ImGui.TableSetupColumn($"Name{pair}", ImGuiTableColumnFlags.WidthStretch, 0.7f);
+                ImGui.TableSetupColumn($"Value{pair}", ImGuiTableColumnFlags.WidthStretch, 1f);
             }
 
             var perColumn = (rows.Length + pairs - 1) / pairs;

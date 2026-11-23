@@ -192,23 +192,6 @@ internal static class ObisTheme
         return open;
     }
 
-    /// <summary>The size of tile values relative to the font.</summary>
-    public const float TileValueScale = 1.2f;
-
-    /// <summary>A labelled value tile, like a dashboard stat.</summary>
-    public static void Tile(string id, string label, string value, Vector4 valueColor, Vector2 size, string? detail = null)
-    {
-        ImGui.PushStyleColor(ImGuiCol.ChildBg, Card);
-        ImGui.BeginChild(id, size, ImGuiChildFlags.AlwaysUseWindowPadding, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
-        ColoredText(Muted, label);
-        PushBold(TileValueScale);
-        ColoredText(valueColor, value);
-        ImGui.PopFont();
-        if (detail is not null) ColoredText(Muted, detail);
-        ImGui.EndChild();
-        ImGui.PopStyleColor();
-    }
-
     /// <summary>A rounded, outlined button that is filled when selected. Returns true when clicked.</summary>
     public static bool Pill(string label, Vector4 color, bool selected, bool enabled = true)
     {
