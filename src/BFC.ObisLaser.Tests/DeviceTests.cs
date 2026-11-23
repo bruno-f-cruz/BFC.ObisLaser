@@ -77,6 +77,20 @@ public class DeviceTests
     }
 
     [Fact]
+    public async Task UnreadableRepliesAreEmittedAsFailedReplies()
+    {
+        var laser = new FakeLaser();
+        laser.Replies["SOUR:POW:LEV?"] = "";   // answered with OK and no value, like some older firmware
+
+        var replies = await Run(Commands(new GetPower(), new GetEmission()), laser).ToList();
+
+        Assert.False(replies[0].IsSuccess);
+        Assert.IsType<ObisProtocolException>(replies[0].Error);
+        Assert.Null(replies[0].ErrorCode);
+        Assert.True(replies[1].IsSuccess);
+    }
+
+    [Fact]
     public async Task EnsureSuccessRaisesTheDeviceError()
     {
         var laser = new FakeLaser();

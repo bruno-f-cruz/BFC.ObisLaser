@@ -9,7 +9,7 @@ The package uses a message-based design:
 - `ParseReply` emits the typed values of one kind of reply, such as `LaserState` for `GetState`.
 - `EnsureSuccess` raises an error for commands rejected by the laser, which are otherwise emitted as data.
 - `FindDevices` lists the OBIS lasers and controllers connected to the computer.
-- `ObisLaserVisualizer` shows a control panel for a laser while the workflow runs: its state, controls for emission, power and operating mode, and a log of the replies. The panel is in the BFC.ObisLaser.Design package.
+- `ObisLaserVisualizer` shows a dashboard for a laser while the workflow runs: wavelength and device information, live readings, an emission switch, a power slider, operating mode, persistent settings, faults and a log of the replies. The dashboard is in the BFC.ObisLaser.Design package.
 
 The operators are built on [ObisLaser.Net](https://github.com/bruno-f-cruz/ObisLaser.Net) and target .NET Framework 4.7.2 and .NET 8.
 

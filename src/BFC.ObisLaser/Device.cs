@@ -18,8 +18,9 @@ namespace BFC.ObisLaser;
 /// commands raise an error, so that stale commands never pile up. The port is closed
 /// when the workflow stops. To send commands from several places, merge them into one subject that
 /// feeds this node, and publish the replies through another subject.
-/// Commands rejected by the laser are emitted as replies with <see cref="ObisReply.IsSuccess"/> set to
-/// <see langword="false"/>; timeouts and communication errors raise a sequence error.
+/// Commands rejected by the laser, or answered with a reply that cannot be read, are emitted as replies
+/// with <see cref="ObisReply.IsSuccess"/> set to <see langword="false"/>; timeouts and communication
+/// errors raise a sequence error.
 /// </remarks>
 [Combinator]
 [WorkflowElementCategory(ElementCategory.Source)]
@@ -103,9 +104,9 @@ public sealed class Device
             var value = command.Execute(laser);
             return new ObisReply(command, value, null, stopwatch.Elapsed);
         }
-        catch (ObisDeviceException error)
+        catch (Exception error) when (error is ObisDeviceException or ObisProtocolException)
         {
-            return new ObisReply(command, null, error, stopwatch.Elapsed);
+            return new ObisReply(command, null, (ObisException)error, stopwatch.Elapsed);
         }
     }
 }

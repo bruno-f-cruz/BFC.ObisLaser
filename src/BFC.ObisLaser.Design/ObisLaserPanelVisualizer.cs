@@ -1,8 +1,11 @@
+using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using Timer = System.Windows.Forms.Timer;
 using Bonsai.Design;
 using Bonsai.Expressions;
 using Bonsai.ImGui.Design;
+using Hexa.NET.ImGui;
+using Timer = System.Windows.Forms.Timer;
 
 [assembly: Bonsai.TypeVisualizer(typeof(BFC.ObisLaser.Design.ObisLaserPanelVisualizer), Target = typeof(BFC.ObisLaser.ObisLaserVisualizer))]
 
@@ -19,6 +22,7 @@ public sealed class ObisLaserPanelVisualizer : DialogTypeVisualizer
     ObisLaserSession? requestedInfo;
     ImGuiControl? control;
     Timer? timer;
+    bool styled;
 
     public override void Load(IServiceProvider provider)
     {
@@ -30,11 +34,24 @@ public sealed class ObisLaserPanelVisualizer : DialogTypeVisualizer
             ?? throw new InvalidOperationException("This visualizer only supports the ObisLaserVisualizer node.");
 
         control = new ImGuiControl { Dock = DockStyle.Fill };
-        control.Render += (_, _) => ImGuiPanel.Draw("OBIS Laser", Draw);
+        control.Render += (_, _) => Render();
         service.AddControl(control);
-        timer = new Timer { Interval = 33 };
+        timer = new Timer { Interval = 16 };
         timer.Tick += (_, _) => control?.Invalidate();
         timer.Start();
+    }
+
+    void Render()
+    {
+        var scale = control is null ? 1f : DisplayScale(control);
+        ObisTheme.Apply(scale, ref styled);
+        ImGui.SetNextWindowPos(Vector2.Zero);
+        ImGui.SetNextWindowSize(ImGui.GetIO().DisplaySize);
+        const ImGuiWindowFlags Flags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
+            ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoBringToFrontOnFocus;
+        ImGui.Begin("OBIS laser", Flags);
+        try { Draw(); }
+        finally { ImGui.End(); }
     }
 
     void Draw()
@@ -44,12 +61,32 @@ public sealed class ObisLaserPanelVisualizer : DialogTypeVisualizer
         {
             // Show what the laser is as soon as the panel connects to a running workflow.
             requestedInfo = session;
-            session.Send(new GetInfo());
-            session.Send(new GetState());
+            session.Send(new GetInfo(), new GetState());
+            session.Send(ObisLaserPanel.DetailQueries());
+            session.Send(ObisLaserPanel.SettingQueries());
         }
 
         panel.Session = session;
         panel.Draw();
+    }
+
+    [DllImport("user32.dll")]
+    static extern uint GetDpiForWindow(IntPtr hwnd);
+
+    // The DPI of the window, which .NET Framework controls report as 96 unless the application is per-monitor aware.
+    static float DisplayScale(Control control)
+    {
+        uint dpi = 0;
+        try
+        {
+            dpi = GetDpiForWindow(control.Handle);
+        }
+        catch (EntryPointNotFoundException)
+        {
+            // Windows versions before 10 (1607).
+        }
+
+        return Math.Max(1f, (dpi > 0 ? dpi : control.DeviceDpi) / 96f);
     }
 
     // The node outputs the commands requested from this panel; the panel shows replies instead.

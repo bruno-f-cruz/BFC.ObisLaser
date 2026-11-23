@@ -30,7 +30,7 @@ See [commands](commands.md) for the reply value of every command. Because it fil
 
 ## Rejected commands
 
-The laser rejects commands it cannot execute: a power above its maximum, a command it does not support, or a setting that conflicts with its state. `Device` emits these as replies with `IsSuccess` set to `False` and the laser's error code, such as `-220` for an invalid parameter, so that one invalid setting does not stop a running experiment.
+The laser rejects commands it cannot execute: a power above its maximum, a command it does not support, or a setting that conflicts with its state. `Device` emits these as replies with `IsSuccess` set to `False` and the laser's error code, such as `-220` for an invalid parameter, so that one invalid setting does not stop a running experiment. Replies the package cannot read, such as a query answered without a value by older firmware, are emitted the same way, with `ErrorCode` set to null and the reason in `Error`.
 
 To stop on any rejection instead, place `EnsureSuccess` after `Device`:
 

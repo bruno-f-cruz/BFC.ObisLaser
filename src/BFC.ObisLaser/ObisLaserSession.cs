@@ -16,8 +16,9 @@ internal sealed class ObisLaserSession
     readonly object gate = new();
     readonly Subject<ObisCommand> commands = new();
     readonly LinkedList<SessionLogEntry> log = new();
-    LaserState? state;
-    DeviceInfo? info;
+    readonly Dictionary<string, object?> values = new();
+    readonly HashSet<string> unsupported = new();
+    DateTime? lastReplyTime;
     bool pollPending;
     volatile bool polling;
 
@@ -37,15 +38,45 @@ internal sealed class ObisLaserSession
     public IObservable<ObisCommand> Commands => commands;
 
     /// <summary>The latest laser state received, if any.</summary>
-    public LaserState? State
-    {
-        get { lock (gate) return state; }
-    }
+    public LaserState? State => Get<LaserState>(nameof(GetState));
 
     /// <summary>The latest device information received, if any.</summary>
-    public DeviceInfo? Info
+    public DeviceInfo? Info => Get<DeviceInfo>(nameof(GetInfo));
+
+    /// <summary>The local time of the latest reply, if any.</summary>
+    public DateTime? LastReplyTime
     {
-        get { lock (gate) return info; }
+        get { lock (gate) return lastReplyTime; }
+    }
+
+    /// <summary>Returns the latest value replied to a query, such as <c>GetHours</c>, or null if there is none.</summary>
+    public T? Get<T>(string command) where T : class
+    {
+        lock (gate) return values.TryGetValue(command, out var value) ? value as T : null;
+    }
+
+    /// <summary>Returns the latest value replied to a query of a value type, or null if there is none.</summary>
+    public T? GetValue<T>(string command) where T : struct
+    {
+        lock (gate) return values.TryGetValue(command, out var value) && value is T result ? result : null;
+    }
+
+    /// <summary>
+    /// Returns whether the laser does not support a query: it was rejected as an unrecognized command,
+    /// or answered with a reply that cannot be read. Such queries are not sent again.
+    /// </summary>
+    public bool IsUnsupported(string command)
+    {
+        lock (gate) return unsupported.Contains(command);
+    }
+
+    /// <summary>Requests several commands in order.</summary>
+    public void Send(params CommandPayload[] payloads)
+    {
+        foreach (var payload in payloads)
+        {
+            if (!Send(payload)) return;
+        }
     }
 
     /// <summary>Returns a copy of the message log, oldest first.</summary>
@@ -64,6 +95,8 @@ internal sealed class ObisLaserSession
     /// <returns><see langword="false"/> if the command could not be created, e.g. with an out-of-range parameter.</returns>
     public bool Send(CommandPayload payload)
     {
+        if (IsUnsupported(payload.Name)) return true;
+
         ObisCommand command;
         try
         {
@@ -101,16 +134,9 @@ internal sealed class ObisLaserSession
     {
         lock (gate)
         {
-            switch (reply.Value)
-            {
-                case LaserState value:
-                    state = value;
-                    break;
-                case DeviceInfo value:
-                    info = value;
-                    break;
-            }
-
+            lastReplyTime = DateTime.Now;
+            if (reply.IsSuccess && reply.Command.ResultType is not null) values[reply.Command.Name] = reply.Value;
+            if (reply.Command.ResultType is not null && reply.Command.Name != nameof(Query) && IsUnsupportedReply(reply)) unsupported.Add(reply.Command.Name);
             if (reply.Command.Name == nameof(GetState)) pollPending = false;
         }
 
@@ -121,6 +147,11 @@ internal sealed class ObisLaserSession
             reply.Error?.Message,
             reply.Duration));
     }
+
+    // ERR-100 is "Unrecognized command or query"; some firmware also answers queries it does not support without a value.
+    static bool IsUnsupportedReply(ObisReply reply) => reply.ErrorCode == UnrecognizedCommand || reply.Error is ObisProtocolException;
+
+    const int UnrecognizedCommand = -100;
 
     void Append(SessionLogEntry entry)
     {

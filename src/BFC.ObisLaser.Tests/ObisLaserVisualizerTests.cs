@@ -129,6 +129,39 @@ public class ObisLaserVisualizerTests
     }
 
     [Fact]
+    public void TheSessionKeepsTheLatestValueOfEveryQuery()
+    {
+        var session = new ObisLaserSession(0);
+        session.Receive(Reply(new GetHours(), 0, 4048.9));
+        session.Receive(Reply(new GetAutoStart(), 0, true));
+        session.Receive(Reply(new GetBaseplateTemperatureLimits(), 0, new TemperatureLimits(5, 44)));
+
+        Assert.Equal(4048.9, session.GetValue<double>(nameof(GetHours)));
+        Assert.True(session.GetValue<bool>(nameof(GetAutoStart)));
+        Assert.Equal(44, session.GetValue<TemperatureLimits>(nameof(GetBaseplateTemperatureLimits))!.Value.High);
+        Assert.Null(session.GetValue<double>(nameof(GetPower)));
+    }
+
+    [Fact]
+    public void UnsupportedQueriesAreNotSentAgain()
+    {
+        var session = new ObisLaserSession(1);
+        var commands = new List<ObisCommand>();
+        using var subscription = session.Commands.Subscribe(commands.Add);
+
+        session.Receive(Reply(new GetDiodeTemperature(), 1, null, new ObisDeviceException(-100, "SOUR1:TEMP:DIOD?")));
+        session.Receive(new ObisReply(new GetDiodeWarmup().CreateCommand(1), null, new ObisProtocolException("Expected a single reply line, got 0: ''."), TimeSpan.Zero));
+        session.Receive(Reply(new SetPower { Watts = 1 }, 1, null, new ObisDeviceException(-220, "SOUR1:POW:LEV:IMM:AMPL 1")));
+
+        Assert.True(session.IsUnsupported(nameof(GetDiodeTemperature)));
+        Assert.True(session.IsUnsupported(nameof(GetDiodeWarmup)));
+        Assert.False(session.IsUnsupported(nameof(SetPower)));
+
+        session.Send(new GetDiodeTemperature(), new GetDiodeWarmup(), new GetState());
+        Assert.Equal(new[] { "GetState" }, commands.Select(command => command.Name));
+    }
+
+    [Fact]
     public void TheNodeIsACombinator()
     {
         var attribute = (Bonsai.WorkflowElementCategoryAttribute)Attribute.GetCustomAttribute(typeof(ObisLaserVisualizer), typeof(Bonsai.WorkflowElementCategoryAttribute))!;
