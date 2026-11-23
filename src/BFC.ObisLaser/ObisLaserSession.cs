@@ -22,10 +22,22 @@ internal sealed class ObisLaserSession
     bool pollPending;
     volatile bool polling;
 
-    public ObisLaserSession(int channel) => Channel = channel;
+    readonly Func<bool> readOnly;
+
+    public ObisLaserSession(int channel, Func<bool>? readOnly = null)
+    {
+        Channel = channel;
+        this.readOnly = readOnly ?? (() => false);
+    }
 
     /// <summary>The channel of the laser.</summary>
     public int Channel { get; }
+
+    /// <summary>
+    /// Whether the panel is read-only. Commands that can change the laser, including raw queries,
+    /// are then not sent; queries of known values still are.
+    /// </summary>
+    public bool ReadOnly => readOnly();
 
     /// <summary>Whether the laser state is requested periodically.</summary>
     public bool Polling
@@ -96,6 +108,7 @@ internal sealed class ObisLaserSession
     public bool Send(CommandPayload payload)
     {
         if (IsUnsupported(payload.Name)) return true;
+        if (ReadOnly && !IsReadQuery(payload)) return false;
 
         ObisCommand command;
         try
@@ -147,6 +160,9 @@ internal sealed class ObisLaserSession
             reply.Error?.Message,
             reply.Duration));
     }
+
+    // Raw queries can contain any text, so only the typed queries are reads.
+    static bool IsReadQuery(CommandPayload payload) => payload is not ActionPayload && payload is not Query && payload is not SelfTest;
 
     // ERR-100 is "Unrecognized command or query"; some firmware also answers queries it does not support without a value.
     static bool IsUnsupportedReply(ObisReply reply) => reply.ErrorCode == UnrecognizedCommand || reply.Error is ObisProtocolException;

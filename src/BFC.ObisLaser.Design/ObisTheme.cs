@@ -154,7 +154,8 @@ internal static class ObisTheme
 
     public static Vector4 WithAlpha(Vector4 color, float alpha) => new(color.X, color.Y, color.Z, alpha);
 
-    public static uint U32(Vector4 color) => ImGui.ColorConvertFloat4ToU32(color);
+    // Applies the style alpha, so hand-drawn widgets are dimmed like the others when disabled.
+    public static uint U32(Vector4 color) => ImGui.GetColorU32(color);
 
     /// <summary>
     /// Approximate color of a wavelength in nanometers, lifted towards white so that deep violet and

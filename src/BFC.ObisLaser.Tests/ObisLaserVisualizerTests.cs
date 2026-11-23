@@ -162,6 +162,40 @@ public class ObisLaserVisualizerTests
     }
 
     [Fact]
+    public void ADisabledPanelOnlySendsQueries()
+    {
+        var node = new ObisLaserVisualizer { Disable = true };
+        var commands = new List<ObisCommand>();
+        using var subscription = node.Process(Observable.Never<ObisReply>()).Subscribe(commands.Add);
+        var session = node.Session!;
+
+        Assert.True(session.ReadOnly);
+        Assert.False(session.Send(new SetEmission { Enabled = true }));
+        Assert.False(session.Send(new SetPower { Watts = 0.01 }));
+        Assert.False(session.Send(new Query { Text = "SOUR:AM:STAT ON" }));
+        Assert.False(session.Send(new ClearErrors()));
+        Assert.True(session.Send(new GetState()));
+        Assert.True(session.Send(new GetInfo()));
+
+        Assert.Equal(new[] { "GetState", "GetInfo" }, commands.Select(command => command.Name));
+    }
+
+    [Fact]
+    public void DisableCanBeChangedWhileTheWorkflowRuns()
+    {
+        var node = new ObisLaserVisualizer();
+        var commands = new List<ObisCommand>();
+        using var subscription = node.Process(Observable.Never<ObisReply>()).Subscribe(commands.Add);
+
+        node.Disable = true;
+        Assert.False(node.Session!.Send(new SetEmission { Enabled = true }));
+        node.Disable = false;
+        Assert.True(node.Session.Send(new SetEmission { Enabled = false }));
+
+        Assert.Equal("SetEmission(False)", Assert.Single(commands).Text);
+    }
+
+    [Fact]
     public void TheNodeIsACombinator()
     {
         var attribute = (Bonsai.WorkflowElementCategoryAttribute)Attribute.GetCustomAttribute(typeof(ObisLaserVisualizer), typeof(Bonsai.WorkflowElementCategoryAttribute))!;

@@ -13,6 +13,7 @@ internal sealed class ObisLaserPanel
     static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
     static readonly TimeSpan PendingTimeout = TimeSpan.FromSeconds(3);
     const string NotSupported = "Not supported";
+    const string ReadOnlyLabel = "READ-ONLY";
 
     static readonly (OperatingMode Mode, string Label, string Description)[] Modes =
     {
@@ -122,9 +123,17 @@ internal sealed class ObisLaserPanel
         var (status, statusColor) = Status(session, state, color);
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         var badgeWidth = ImGui.CalcTextSize(status).X + Px(14);
+        if (session.ReadOnly) badgeWidth += ImGui.CalcTextSize(ReadOnlyLabel).X + Px(14) + spacing;
         var liveWidth = ImGui.CalcTextSize("Live").X + spacing + height * 1.75f;
         var refreshWidth = ImGui.CalcTextSize("Refresh").X + ImGui.GetStyle().FramePadding.X * 2;
         ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(), right - badgeWidth - liveWidth - refreshWidth - spacing * 3));
+        if (session.ReadOnly)
+        {
+            Badge(ReadOnlyLabel, Muted);
+            ImGui.SetItemTooltip("The Disable property of this node is set: the laser can be viewed but not changed.");
+            ImGui.SameLine();
+        }
+
         Badge(status, statusColor);
         ImGui.SameLine(0, spacing * 2);
         ImGui.AlignTextToFramePadding();
@@ -159,6 +168,7 @@ internal sealed class ObisLaserPanel
     void DrawControls(ObisLaserSession session, LaserState? state, DeviceInfo? info, Vector4 color)
     {
         ImGui.Spacing();
+        ImGui.BeginDisabled(session.ReadOnly);
         var labelWidth = Px(64);
 
         // Emission: shows the requested value until the laser reports it, or for a few seconds.
@@ -224,6 +234,7 @@ internal sealed class ObisLaserPanel
             ImGui.SetItemTooltip(description + " Stored in the laser.");
         }
 
+        ImGui.EndDisabled();
         ImGui.Spacing();
     }
 
@@ -385,7 +396,7 @@ internal sealed class ObisLaserPanel
     // Settings: persistent configuration of the laser.
     static void DrawSettings(ObisLaserSession session)
     {
-        ColoredText(Warning, "These settings are stored in the laser and persist after power cycles.");
+        ColoredText(Warning, session.ReadOnly ? "These settings are stored in the laser. Read-only: they cannot be changed here." : "These settings are stored in the laser and persist after power cycles.");
         var labelWidth = Px(110);
         bool? Setting(string command) => session.GetValue<bool>(command);
 
@@ -396,6 +407,7 @@ internal sealed class ObisLaserPanel
             if (SwitchRow(label, $"##{get}", value, tooltip, labelWidth) && value.HasValue) session.Send(set(!value.Value), query);
         }
 
+        ImGui.BeginDisabled(session.ReadOnly);
         Row("Auto start", nameof(GetAutoStart), "Turn emission on when the laser is powered.", on => new SetAutoStart { Enabled = on }, new GetAutoStart());
         Row("CDRH delay", nameof(GetCdrhDelay), "Wait 5 s before emission starts, as required by CDRH.", on => new SetCdrhDelay { Enabled = on }, new GetCdrhDelay());
         Row("Diode warm-up", nameof(GetDiodeWarmup), "Warm up the laser diode before emission.", on => new SetDiodeWarmup { Enabled = on }, new GetDiodeWarmup());
@@ -404,6 +416,7 @@ internal sealed class ObisLaserPanel
         Row("Analog blanking", nameof(GetAnalogBlanking), "Blank emission when the analog modulation input is low.", on => new SetAnalogBlanking { Enabled = on }, new GetAnalogBlanking());
 
         if (!session.IsUnsupported(nameof(GetAnalogImpedance))) DrawImpedance(session, labelWidth);
+        ImGui.EndDisabled();
         if (ImGui.Button("Read again##settings")) session.Send(SettingQueries());
     }
 
@@ -457,7 +470,9 @@ internal sealed class ObisLaserPanel
                 first = false;
             }
 
+            ImGui.BeginDisabled(session.ReadOnly);
             if (ColoredButton("Recover", Danger)) session.Send(new Recover(), new GetState());
+            ImGui.EndDisabled();
             ImGui.SetItemTooltip("Try to recover the laser from a fault.");
         }
 
@@ -468,7 +483,9 @@ internal sealed class ObisLaserPanel
         else foreach (var error in errors) ColoredText(Warning, $"{error.Code}  {error.Message}");
         if (ImGui.Button("Read##errors")) session.Send(new GetErrors());
         ImGui.SameLine();
+        ImGui.BeginDisabled(session.ReadOnly);
         if (ImGui.Button("Clear##errors")) session.Send(new ClearErrors(), new GetErrors(), new GetState());
+        ImGui.EndDisabled();
         ImGui.SetItemTooltip("Clear the error queue of the laser.");
     }
 

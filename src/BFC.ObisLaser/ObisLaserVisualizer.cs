@@ -31,6 +31,9 @@ public sealed class ObisLaserVisualizer
     [Description("Whether the panel requests the laser state every PollInterval when the workflow starts. Can be toggled in the panel.")]
     public bool PollState { get; set; }
 
+    [Description("Whether the panel is read-only: it shows the laser and can request its state, but cannot change emission, power, mode or settings. Can be changed while the workflow runs.")]
+    public bool Disable { get; set; }
+
     [XmlIgnore]
     [Description("The interval between state requests while the panel polls the laser state.")]
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(1);
@@ -54,7 +57,7 @@ public sealed class ObisLaserVisualizer
     {
         if (PollInterval <= TimeSpan.Zero) throw new InvalidOperationException("PollInterval must be positive.");
 
-        var current = new ObisLaserSession(Channel) { Polling = PollState };
+        var current = new ObisLaserSession(Channel, () => Disable) { Polling = PollState };
         var channel = Channel;
         var subscriptions = new CompositeDisposable
         {
