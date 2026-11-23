@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Xml;
 using System.Xml.Serialization;
@@ -26,7 +27,7 @@ namespace BFC.ObisLaser;
 public sealed class Device
 {
     [TypeConverter(typeof(PortNameConverter))]
-    [Description("The serial port of the laser or controller, e.g. COM3. Read when the workflow starts.")]
+    [Description("The serial port of the laser or controller, e.g. COM3. The list shows OBIS devices connected over USB, or every serial port if there are none. Read when the workflow starts.")]
     public string? PortName { get; set; }
 
     [XmlIgnore]
@@ -50,13 +51,14 @@ public sealed class Device
         Process(source, () => Open(PortName, Timeout));
 
     internal IObservable<ObisReply> Process(IObservable<ObisCommand> source, Func<ObisConnection> open) =>
-        Observable.Using(open, connection => Observable.Defer(() =>
+        Observable.Create<ObisReply>(observer =>
         {
             var maxPending = MaxPendingCommands;
             if (maxPending < 1) throw new InvalidOperationException("MaxPendingCommands must be positive.");
 
+            var connection = open();
             var pending = 0;
-            return source.Select(command =>
+            var replies = source.Select(command =>
             {
                 if (Interlocked.Increment(ref pending) > maxPending + 1)
                 {
@@ -67,7 +69,23 @@ public sealed class Device
                 return Observable.FromAsync(() => Task.Run(() => Execute(connection, command)))
                     .Finally(() => Interlocked.Decrement(ref pending));
             }).Merge(1); // One at a time and in order; unlike Concat, errors are raised immediately.
-        }));
+
+            // The port is closed before completion or errors are forwarded, so that operators such as
+            // Repeat or Retry can open it again right away.
+            var subscription = replies.Subscribe(
+                observer.OnNext,
+                error =>
+                {
+                    connection.Dispose();
+                    observer.OnError(error);
+                },
+                () =>
+                {
+                    connection.Dispose();
+                    observer.OnCompleted();
+                });
+            return new CompositeDisposable(subscription, connection);
+        });
 
     static ObisConnection Open(string? portName, TimeSpan timeout)
     {

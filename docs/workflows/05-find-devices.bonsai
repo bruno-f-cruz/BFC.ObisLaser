@@ -4,7 +4,9 @@
   <Workflow>
     <Nodes>
       <Expression xsi:type="Combinator">
-        <Combinator xsi:type="obis:FindDevices" />
+        <Combinator xsi:type="obis:FindDevices">
+          <obis:AllPorts>false</obis:AllPorts>
+        </Combinator>
       </Expression>
       <Expression xsi:type="WorkflowOutput" />
     </Nodes>

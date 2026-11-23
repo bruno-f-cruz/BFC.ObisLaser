@@ -117,10 +117,35 @@ public class DeviceTests
     public async Task ThePortIsClosedWhenTheWorkflowStops()
     {
         var laser = new FakeLaser();
-        await Run(Commands(new GetPower()), laser).ToList();
+        var closedBeforeCompletion = false;
+        await Run(Commands(new GetPower()), laser).Do(_ => { }, () => closedBeforeCompletion = laser.Disposed).ToList();
 
-        // The port is closed right after completion is delivered, possibly on another thread.
-        Assert.True(SpinWait.SpinUntil(() => laser.Disposed, TimeSpan.FromSeconds(1)));
+        // The port is closed before completion is forwarded, so that it can be opened again right away.
+        Assert.True(closedBeforeCompletion);
+    }
+
+    [Fact]
+    public async Task ThePortIsClosedBeforeAnErrorIsForwarded()
+    {
+        var laser = new FakeLaser();
+        var connection = new ObisConnection(laser, TimeSpan.FromMilliseconds(50));
+        laser.Silent = true;
+        var closedBeforeError = false;
+        var replies = new Device().Process(Commands(new GetPower()), () => connection)
+            .Do(_ => { }, _ => closedBeforeError = laser.Disposed);
+
+        await Assert.ThrowsAsync<ObisTimeoutException>(async () => await replies.ToList());
+        Assert.True(closedBeforeError);
+    }
+
+    [Fact]
+    public void ThePortIsClosedWhenTheSubscriptionIsDisposed()
+    {
+        var laser = new FakeLaser();
+        var subscription = Run(Observable.Never<ObisCommand>(), laser).Subscribe();
+        Assert.False(laser.Disposed);
+        subscription.Dispose();
+        Assert.True(laser.Disposed);
     }
 
     [Fact]

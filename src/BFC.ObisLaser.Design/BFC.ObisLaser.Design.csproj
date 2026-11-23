@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Title>Bonsai - OBIS Laser Design</Title>
+    <Description>Control panel for Coherent OBIS LX/LS lasers in the Bonsai editor (unofficial, not affiliated with Coherent).</Description>
+    <TargetFramework>net472</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BFC.ObisLaser\BFC.ObisLaser.csproj" />
+    <PackageReference Include="Bonsai.Design" Version="2.9.0" />
+    <PackageReference Include="Bonsai.ImGui.Design" Version="0.2.0" />
+    <PackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

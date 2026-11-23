@@ -12,7 +12,7 @@ Every interaction with a laser is a message. `CreateCommand` creates a command, 
 
 `Timer` triggers `CreateCommand`, which creates a `GetState` command; `Device` sends it to the laser on its serial port and emits the reply; `ParseReply` emits the `LaserState` it contains.
 
-These guides assume the package is installed in your Bonsai environment and that the laser is connected over USB or RS-232. Coherent's USB driver, installed with Coherent Connection, makes the laser appear as a serial port such as `COM3`.
+These guides assume the package is installed in your Bonsai environment and that the laser is connected over USB or RS-232. Over USB, Windows shows the laser or controller as a serial port such as `COM3`, without any extra driver on current Windows versions.
 
 ## Guides
 
@@ -20,6 +20,7 @@ These guides assume the package is installed in your Bonsai environment and that
 - [Commands](commands.md): the available commands, and how to change parameters such as the power while a workflow runs.
 - [Replies and errors](replies.md): typed values, rejected commands and timeouts.
 - [Several lasers and devices](connections.md): send commands from several places, control several lasers, and find connected devices.
+- [Control panel](control-panel.md): control a laser and watch its replies from a panel while the workflow runs.
 
 ## Safety
 

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.IO.Ports;
 using System.Reactive.Linq;
 using Bonsai;
 using ObisLaser.Net;
@@ -9,6 +10,9 @@ namespace BFC.ObisLaser;
 /// Finds OBIS lasers and controllers by probing serial ports, and emits each device found.
 /// </summary>
 /// <remarks>
+/// By default, only the ports of OBIS devices connected over USB are probed, recognized by Coherent's
+/// USB vendor ID, or every serial port if there are none. Set <see cref="AllPorts"/> to also find
+/// devices connected over RS-232 while an OBIS device is connected over USB.
 /// Each port is sent an identification query, which may disturb other serial devices; use
 /// <see cref="PortNames"/> or <see cref="ExcludedPortNames"/> to limit the ports probed. Lasers
 /// behind an OBIS Remote or LaserBox are listed with their channel. Ports in use are skipped, so
@@ -17,8 +21,11 @@ namespace BFC.ObisLaser;
 [Description("Finds OBIS lasers and controllers by probing serial ports.")]
 public sealed class FindDevices : Source<DiscoveredDevice>
 {
-    [Description("The ports to probe, separated by commas, e.g. COM3,COM4. Leave empty to probe every serial port.")]
+    [Description("The ports to probe, separated by commas, e.g. COM3,COM4. Leave empty to probe the ports of OBIS devices connected over USB, or every serial port if there are none.")]
     public string? PortNames { get; set; }
+
+    [Description("Whether to probe every serial port when PortNames is empty, for example to find devices connected over RS-232.")]
+    public bool AllPorts { get; set; }
 
     [Description("The ports never to probe, separated by commas, e.g. COM1.")]
     public string? ExcludedPortNames { get; set; }
@@ -26,6 +33,7 @@ public sealed class FindDevices : Source<DiscoveredDevice>
     public override IObservable<DiscoveredDevice> Generate() => Observable.Defer(() =>
     {
         var ports = Split(PortNames);
+        if (ports.Length == 0 && AllPorts) ports = SerialPort.GetPortNames();
         var excluded = Split(ExcludedPortNames);
         return Observable.FromAsync(() => Task.Run(() => ObisDiscovery.FindAll(ports.Length > 0 ? ports : null, excluded)))
             .SelectMany(devices => devices);

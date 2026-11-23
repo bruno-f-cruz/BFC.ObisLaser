@@ -10,9 +10,10 @@
 
   <ItemGroup>
     <PackageReference Include="Bonsai.Core" Version="2.9.0" />
-    <PackageReference Include="ObisLaser.Net" Version="0.1.0" />
+    <PackageReference Include="ObisLaser.Net" Version="0.2.0" />
     <PackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" />
     <InternalsVisibleTo Include="BFC.ObisLaser.Tests" />
+    <InternalsVisibleTo Include="BFC.ObisLaser.Design" />
   </ItemGroup>
 
 </Project>

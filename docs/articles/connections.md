@@ -37,4 +37,6 @@ Lasers on different ports each need their own `Device`.
 
 `FindDevices` sends an identification query to each serial port and emits each OBIS laser or controller found, with its port, channel, model and serial number. Lasers behind a controller are listed with their channel.
 
-Probing writes to every serial port, which may disturb other serial devices. Set `PortNames` to probe only some ports, or `ExcludedPortNames` to skip some. Ports already in use are skipped, so run it while no other workflow is connected to the lasers.
+OBIS lasers and controllers connected over USB are recognized by Coherent's USB vendor ID without opening any port, so `FindDevices` probes only their ports, or every serial port if there are none. Devices connected over RS-232, for example through a USB adapter, cannot be recognized this way: set `AllPorts` to probe every serial port. The `PortName` list of `Device` shows the same ports, but accepts any port name.
+
+Probing writes to each port, which may disturb other serial devices. Set `PortNames` to probe only some ports, or `ExcludedPortNames` to skip some. Ports already in use are skipped, so run it while no other workflow is connected to the lasers.
