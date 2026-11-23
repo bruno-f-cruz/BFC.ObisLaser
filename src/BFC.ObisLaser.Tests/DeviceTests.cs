@@ -43,7 +43,9 @@ public class DeviceTests
         var replies = await task;
 
         Assert.Equal(Enumerable.Range(0, 10).Select(i => $"SetPower({i / 1000.0} W)"), replies.Select(reply => reply.Command.Text));
-        var exchanges = laser.Log.SkipWhile(entry => entry.StartsWith("> SYST:COMM:HAND") || entry.StartsWith("< ON") || entry == "< OK").ToList();
+        var exchanges = laser.Log.SkipWhile(entry => entry.StartsWith("> SYST:COMM:HAND") || entry.StartsWith("< ON") || entry == "< OK")
+            .TakeWhile(entry => !entry.StartsWith("> SOUR:AM:STAT")) // Emission is turned off when the port closes.
+            .ToList();
         for (int i = 0; i < exchanges.Count; i += 2)
         {
             Assert.StartsWith("> SOUR:POW:LEV:IMM:AMPL", exchanges[i]);
@@ -57,7 +59,7 @@ public class DeviceTests
         var laser = new FakeLaser();
         var reply = await Run(Observable.Return(new GetPower().CreateCommand(2)), laser).SingleAsync();
 
-        Assert.Equal("SOUR2:POW:LEV?", laser.Written.Last());
+        Assert.Equal("SOUR2:POW:LEV?", laser.Written.Last(text => !text.Contains(":AM:STAT")));
         Assert.Equal(2, reply.Command.Channel);
         Assert.Equal(0.05, (double)reply.Value!, 5);
     }
@@ -160,6 +162,49 @@ public class DeviceTests
         Assert.False(laser.Disposed);
         subscription.Dispose();
         Assert.True(laser.Disposed);
+    }
+
+    [Fact]
+    public void EmissionIsTurnedOffBeforeThePortIsClosed()
+    {
+        var laser = new FakeLaser();
+        var subscription = Run(Observable.Never<ObisCommand>(), laser).Subscribe();
+        subscription.Dispose();
+
+        Assert.Equal("SOUR:AM:STAT OFF", laser.Written.Last());
+        Assert.DoesNotContain(laser.Written, text => text.StartsWith("SOUR255"));
+        Assert.True(laser.Disposed);
+    }
+
+    [Fact]
+    public async Task EmissionIsTurnedOffWhenTheCommandsComplete()
+    {
+        var laser = new FakeLaser();
+        await Run(Commands(new SetEmission { Enabled = true }), laser).ToList();
+
+        Assert.Equal(new[] { "SOUR:AM:STAT ON", "SOUR:AM:STAT OFF" }, laser.Written.Where(text => text.StartsWith("SOUR:AM:STAT")));
+        Assert.True(laser.Disposed);
+    }
+
+    [Fact]
+    public async Task LasersBehindAControllerAreTurnedOffAndBroadcastTo()
+    {
+        var laser = new FakeLaser();
+        laser.Errors["SOUR:AM:STAT OFF"] = -400; // A controller rejects emission commands.
+        await Run(new[] { new SetEmission { Enabled = true }.CreateCommand(2) }.ToObservable(), laser).ToList();
+
+        Assert.Equal(new[] { "SOUR2:AM:STAT ON", "SOUR:AM:STAT OFF", "SOUR2:AM:STAT OFF", "SOUR255:AM:STAT OFF" },
+            laser.Written.Where(text => text.Contains(":AM:STAT")));
+    }
+
+    [Fact]
+    public void AControllerIsBroadcastToEvenWithoutCommands()
+    {
+        var laser = new FakeLaser();
+        laser.Errors["SOUR:AM:STAT OFF"] = -400;
+        Run(Observable.Never<ObisCommand>(), laser).Subscribe().Dispose();
+
+        Assert.Equal("SOUR255:AM:STAT OFF", laser.Written.Last());
     }
 
     [Fact]

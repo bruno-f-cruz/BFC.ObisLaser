@@ -21,6 +21,8 @@ namespace BFC.ObisLaser;
 /// Commands rejected by the laser, or answered with a reply that cannot be read, are emitted as replies
 /// with <see cref="ObisReply.IsSuccess"/> set to <see langword="false"/>; timeouts and communication
 /// errors raise a sequence error.
+/// Before the port is closed, emission is turned off: on the device on the port, on every channel
+/// commands were sent to, and, through a controller, on every laser connected to it.
 /// </remarks>
 [Combinator]
 [WorkflowElementCategory(ElementCategory.Source)]
@@ -58,9 +60,19 @@ public sealed class Device
             if (maxPending < 1) throw new InvalidOperationException("MaxPendingCommands must be positive.");
 
             var connection = open();
+            var channels = new HashSet<int> { 0 };
+            var closed = 0;
+            void Close()
+            {
+                if (Interlocked.Exchange(ref closed, 1) != 0) return;
+                try { TurnOffEmission(connection, Snapshot(channels)); }
+                finally { connection.Dispose(); }
+            }
+
             var pending = 0;
             var replies = source.Select(command =>
             {
+                lock (channels) channels.Add(command.Channel);
                 if (Interlocked.Increment(ref pending) > maxPending + 1)
                 {
                     Interlocked.Decrement(ref pending);
@@ -77,16 +89,48 @@ public sealed class Device
                 observer.OnNext,
                 error =>
                 {
-                    connection.Dispose();
+                    Close();
                     observer.OnError(error);
                 },
                 () =>
                 {
-                    connection.Dispose();
+                    Close();
                     observer.OnCompleted();
                 });
-            return new CompositeDisposable(subscription, connection);
+            return new CompositeDisposable(subscription, Disposable.Create(Close));
         });
+
+    static int[] Snapshot(HashSet<int> channels)
+    {
+        lock (channels) return channels.OrderBy(channel => channel).ToArray();
+    }
+
+    /// <summary>
+    /// Turns emission off on each channel, then broadcasts it to every laser behind a controller if the
+    /// device on the port is a controller or commands were sent to lasers behind one.
+    /// </summary>
+    /// <remarks>
+    /// Waits for any command in progress, since the connection exchanges one message at a time.
+    /// Rejected commands are ignored; the first timeout or communication error stops, since the device
+    /// no longer answers.
+    /// </remarks>
+    internal static void TurnOffEmission(ObisConnection connection, IReadOnlyList<int> channels)
+    {
+        var controller = channels.Any(channel => channel > 0);
+        try
+        {
+            foreach (var channel in channels)
+            {
+                try { connection.GetLaser(channel).SetEmission(false); }
+                catch (ObisDeviceException) { if (channel == 0) controller = true; }
+            }
+
+            if (controller) connection.Broadcast("SOUR:AM:STAT OFF");
+        }
+        catch (Exception error) when (error is ObisException or IOException or TimeoutException or InvalidOperationException or UnauthorizedAccessException)
+        {
+        }
+    }
 
     static ObisConnection Open(string? portName, TimeSpan timeout)
     {

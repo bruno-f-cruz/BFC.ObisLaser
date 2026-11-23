@@ -38,7 +38,7 @@ Select `Device` and set `PortName` to the port of your laser; the drop-down list
 2. `Concat` sends them to `Device` in that order.
 3. `EnsureSuccess` stops the workflow with an error if the laser rejects any of them, for example a power above its maximum.
 
-Emission may start a few seconds after `SetEmission`, because of the laser warm-up and the 5 s CDRH delay. Emission stays on after the workflow stops. To turn it off, change `Enabled` to `False` on the `SetEmission` node and run the workflow again.
+Emission may start a few seconds after `SetEmission`, because of the laser warm-up and the 5 s CDRH delay. `Device` turns emission off when the workflow stops.
 
 ## If it does not run
 

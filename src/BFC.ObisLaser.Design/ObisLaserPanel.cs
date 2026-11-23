@@ -187,7 +187,7 @@ internal sealed class ObisLaserPanel
             session.Send(new SetEmission { Enabled = emissionRequested.Value }, new GetState());
         }
 
-        ImGui.SetItemTooltip("Turn laser emission on or off. Emission stays on after the workflow stops.");
+        ImGui.SetItemTooltip("Turn laser emission on or off. Emission is turned off when the workflow stops.");
         ImGui.SameLine();
         ImGui.AlignTextToFramePadding();
         if (emissionRequested.HasValue) ColoredText(Muted, emissionRequested.Value ? "Turning on..." : "Turning off...");
