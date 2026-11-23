@@ -26,14 +26,24 @@ internal static class ObisTheme
     public static readonly Vector4 Danger = new(0.76f, 0.25f, 0.29f, 1f);
 
     static readonly Dictionary<uint, float> animations = new();
-    static ImFontPtr boldFont;
+    // Fonts belong to the font atlas of an ImGui context, so the bold font is kept per context.
+    static readonly Dictionary<IntPtr, ImFontPtr> boldFonts = new();
     static float dpiScale = 1f;
 
     /// <summary>The scale of the display, 1 at 96 DPI.</summary>
     public static float Scale => dpiScale;
 
     /// <summary>The bold font, or the default font if Segoe UI Bold is not installed.</summary>
-    public static ImFontPtr BoldFont => boldFont.IsNull ? ImGui.GetFont() : boldFont;
+    public static unsafe ImFontPtr BoldFont
+    {
+        get
+        {
+            lock (boldFonts)
+            {
+                return boldFonts.TryGetValue((IntPtr)ImGui.GetCurrentContext().Handle, out var font) && !font.IsNull ? font : ImGui.GetFont();
+            }
+        }
+    }
 
     /// <summary>
     /// Pushes the bold font at a multiple of the base font size. ImGui scales pushed sizes by the
@@ -73,6 +83,31 @@ internal static class ObisTheme
         ApplyColors();
     }
 
+    /// <summary>
+    /// Prepares the dashboard to draw in an ImGui context set up by someone else: loads the bold font once per
+    /// context and takes the display scale from the context, without changing its style, colors or default font.
+    /// </summary>
+    public static unsafe void ApplyEmbedded()
+    {
+        var context = (IntPtr)ImGui.GetCurrentContext().Handle;
+        bool loaded;
+        lock (boldFonts) loaded = boldFonts.ContainsKey(context);
+        if (!loaded)
+        {
+            var font = default(ImFontPtr);
+            if (File.Exists(BoldFontPath))
+            {
+                var fonts = new ImFontAtlasPtr(ImGui.GetIO().Handle->Fonts);
+                var added = fonts.AddFontFromFileTTF(BoldFontPath, FontSize);
+                if (added != null) font = new ImFontPtr(added);
+            }
+
+            lock (boldFonts) boldFonts[context] = font;
+        }
+
+        dpiScale = Math.Max(0.25f, ImGui.GetStyle().Handle->FontScaleDpi);
+    }
+
     static unsafe void SetMetrics()
     {
         var style = ImGui.GetStyle().Handle;
@@ -105,7 +140,10 @@ internal static class ObisTheme
         if (File.Exists(BoldFontPath))
         {
             var font = fonts.AddFontFromFileTTF(BoldFontPath, FontSize);
-            if (font != null) boldFont = new ImFontPtr(font);
+            if (font != null)
+            {
+                lock (boldFonts) boldFonts[(IntPtr)ImGui.GetCurrentContext().Handle] = new ImFontPtr(font);
+            }
         }
     }
 
