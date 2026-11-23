@@ -25,7 +25,7 @@ Set `PortName` on `Device` and `Channel` on `ObisLaserVisualizer`: 0 for a laser
 ## Use the dashboard
 
 - **Header**: the wavelength, in its color, with the model, serial number and channel. The badge shows whether the laser is emitting, in standby, in a fault, in its CDRH delay or warming up. **Live** requests the state every `PollInterval` (1 s by default) to keep the readings current; set `PollState` on the node to start it on when the workflow starts. **Refresh** reads everything again.
-- **Control**: the **Emission** switch turns emission on and off; emission stays on after the workflow stops. Drag the **Power** slider, which runs from 0 to the maximum power of the laser, or type a power in milliwatts; the power is sent when you release the slider or leave the box. The **Mode** pills select the operating mode, such as CWP for constant power.
+- **Control**: the **Emission** switch turns emission on and off; `Device` turns it off when the workflow stops. Drag the **Power** slider, which runs from 0 to the maximum power of the laser, or type a power in milliwatts; the power is sent when you release the slider or leave the box. The **Mode** pills select the operating mode, such as CWP for constant power.
 - **Readings**: output power, setpoint, diode current, base plate temperature (amber within 3 °C of its limits, red beyond), operating hours and mode.
 - **Device information**: model, wavelength, serial and part numbers, firmware, power ratings, manufacture and calibration dates, hours, power cycles, currents and temperatures.
 - **Settings**: auto start, CDRH delay, diode warm-up, TEC, status indicator, analog blanking and the analog input impedance. These are stored in the laser and persist after power cycles.

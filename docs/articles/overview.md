@@ -24,6 +24,6 @@ These guides assume the package is installed in your Bonsai environment and that
 
 ## Safety
 
-Commands act on real hardware. Emission stays on after a workflow stops: send `SetEmission` with `Enabled` set to `False` to turn it off. Commands documented as persistent, such as `SetAutoStart` or `SetOperatingMode`, are stored in the laser and survive power cycles.
+Commands act on real hardware. `Device` turns emission off before it closes its port, when the workflow stops or fails, on every laser it can reach: the laser on the port, the channels it sent commands to, and every laser behind a controller. If the computer or the connection is lost, emission stays as it was. Commands documented as persistent, such as `SetAutoStart` or `SetOperatingMode`, are stored in the laser and survive power cycles.
 
 OBIS and Coherent are trademarks of Coherent Corp. This project is not affiliated with or endorsed by Coherent.
