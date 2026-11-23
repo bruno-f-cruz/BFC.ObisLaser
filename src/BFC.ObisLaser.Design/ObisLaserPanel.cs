@@ -74,7 +74,7 @@ internal sealed class ObisLaserPanel
     static void DrawOffline()
     {
         BeginCard("offline");
-        ImGui.PushFont(BoldFont, ImGui.GetFontSize() * 1.3f);
+        PushBold(1.15f);
         ImGui.TextUnformatted("OBIS laser");
         ImGui.PopFont();
         ColoredText(Muted, "Start the workflow to connect to the laser.");
@@ -93,40 +93,40 @@ internal sealed class ObisLaserPanel
         ImGui.PopStyleColor();
     }
 
-    // Header: wavelength swatch, model and serial number, and the status of the laser.
+    // Header, one row: wavelength swatch, wavelength, model and serial number; status and live controls on the right.
     void DrawHeader(ObisLaserSession session, LaserState? state, DeviceInfo? info, Vector4 color)
     {
         BeginCard("header");
         var right = ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X;
-        var draw = ImGui.GetWindowDrawList();
-        var radius = Px(20);
+        var height = ImGui.GetFrameHeight();
+        var radius = Px(6);
         var origin = ImGui.GetCursorScreenPos();
-        var center = origin + new Vector2(radius, radius + Px(2));
+        var center = origin + new Vector2(radius, height * 0.5f);
         var emitting = state?.Emission == true;
-        if (emitting) draw.AddCircleFilled(center, radius * 1.45f, U32(WithAlpha(color, 0.18f)));
-        draw.AddCircleFilled(center, radius, U32(info is null ? WithAlpha(Track, 1f) : WithAlpha(color, emitting ? 1f : 0.55f)));
-        ImGui.Dummy(new Vector2(radius * 2 + Px(4), radius * 2 + Px(4)));
-        ImGui.SameLine(0, Px(12));
+        var draw = ImGui.GetWindowDrawList();
+        if (emitting) draw.AddCircleFilled(center, radius * 1.7f, U32(WithAlpha(color, 0.25f)));
+        draw.AddCircleFilled(center, radius, U32(info is null ? Track : WithAlpha(color, emitting ? 1f : 0.6f)));
+        ImGui.Dummy(new Vector2(radius * 2, height));
+        ImGui.SameLine(0, Px(8));
 
-        ImGui.BeginGroup();
-        ImGui.PushFont(BoldFont, ImGui.GetFontSize() * 1.6f);
+        ImGui.AlignTextToFramePadding();
+        PushBold();
         ImGui.TextUnformatted(info is null ? "OBIS laser" : string.Format(Invariant, "{0:0} nm", info.Wavelength));
         ImGui.PopFont();
-        var channel = session.Channel == 0 ? "Direct connection" : $"Channel {session.Channel}";
+        ImGui.SameLine(0, Px(10));
+        ImGui.AlignTextToFramePadding();
+        var channel = session.Channel == 0 ? "direct" : $"channel {session.Channel}";
         ColoredText(Muted, info is null ? $"{channel}  ·  waiting for device information" : $"{info.Model}  ·  S/N {info.SerialNumber}  ·  {channel}");
-        ImGui.EndGroup();
 
         // Status badge and live controls, aligned right.
         var (status, statusColor) = Status(session, state, color);
-        var statusWidth = ImGui.CalcTextSize(status).X + Px(16);
-        ImGui.SameLine(right - statusWidth);
-        ImGui.BeginGroup();
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var badgeWidth = ImGui.CalcTextSize(status).X + Px(14);
+        var liveWidth = ImGui.CalcTextSize("Live").X + spacing + height * 1.75f;
+        var refreshWidth = ImGui.CalcTextSize("Refresh").X + ImGui.GetStyle().FramePadding.X * 2;
+        ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(), right - badgeWidth - liveWidth - refreshWidth - spacing * 3));
         Badge(status, statusColor);
-        ImGui.EndGroup();
-
-        var liveWidth = ImGui.CalcTextSize("Live").X + ImGui.GetFrameHeight() * 1.8f + ImGui.CalcTextSize("Refresh").X + Px(40);
-        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetFrameHeight() - Px(2));
-        ImGui.SetCursorPosX(right - liveWidth);
+        ImGui.SameLine(0, spacing * 2);
         ImGui.AlignTextToFramePadding();
         ColoredText(Muted, "Live");
         ImGui.SameLine();
@@ -158,9 +158,8 @@ internal sealed class ObisLaserPanel
     // Controls: emission switch, power slider and operating mode.
     void DrawControls(ObisLaserSession session, LaserState? state, DeviceInfo? info, Vector4 color)
     {
-        SectionHeader("Control");
         BeginCard("controls");
-        var labelWidth = Px(90);
+        var labelWidth = Px(64);
 
         // Emission: shows the requested value until the laser reports it, or for a few seconds.
         if (emissionRequested.HasValue && (state?.Emission == emissionRequested || DateTime.Now - emissionRequestTime > PendingTimeout)) emissionRequested = null;
@@ -168,7 +167,7 @@ internal sealed class ObisLaserPanel
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted("Emission");
         ImGui.SameLine(labelWidth);
-        if (Switch("##emission", emission, color, 1.25f) && emission.HasValue)
+        if (Switch("##emission", emission, color) && emission.HasValue)
         {
             emissionRequested = !emission.Value;
             emissionRequestTime = DateTime.Now;
@@ -188,8 +187,8 @@ internal sealed class ObisLaserPanel
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted("Power");
         ImGui.SameLine(labelWidth);
-        var inputWidth = Px(110);
-        var sliderWidth = ImGui.GetContentRegionAvail().X - inputWidth - ImGui.GetStyle().ItemSpacing.X;
+        var inputWidth = Px(84);
+        var sliderWidth = Math.Min(Px(360), ImGui.GetContentRegionAvail().X - inputWidth - ImGui.GetStyle().ItemSpacing.X);
         var shown = float.IsNaN(powerMilliwatts) ? (float.IsNaN(setpoint) ? 0 : setpoint) : powerMilliwatts;
         if (PowerSlider("##power", ref shown, maxMilliwatts, sliderWidth, color, state is not null)) powerMilliwatts = shown;
         var sliderReleased = ImGui.IsItemDeactivatedAfterEdit();
@@ -211,16 +210,6 @@ internal sealed class ObisLaserPanel
             powerMilliwatts = float.NaN; // Follow the setpoint reported by the laser.
         }
 
-        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + labelWidth);
-        if (info is not null)
-        {
-            var measured = state is null ? "-" : FormatMilliwatts(state.Power);
-            ColoredText(Muted, $"Measured {measured}  ·  range {FormatMilliwatts(info.MinPower)} to {FormatMilliwatts(info.MaxPower)}");
-        }
-        else
-        {
-            ColoredText(Muted, "Waiting for the power range of the laser.");
-        }
 
         // Operating mode.
         ImGui.AlignTextToFramePadding();
@@ -265,7 +254,6 @@ internal sealed class ObisLaserPanel
     // Readings: live values as tiles, as many per row as fit.
     static void DrawReadings(ObisLaserSession session, LaserState? state, DeviceInfo? info, Vector4 color)
     {
-        SectionHeader("Readings");
         var tiles = new List<(string Label, string Value, Vector4 Color, string? Detail)>
         {
             ("Output power", state is null ? "-" : FormatMilliwatts(state.Power), state?.Emission == true ? color : Text,
@@ -278,14 +266,14 @@ internal sealed class ObisLaserPanel
                 session.GetValue<TemperatureLimits>(nameof(GetBaseplateTemperatureLimits)) is { } limits ? string.Format(Invariant, "limits {0:0} to {1:0} °C", limits.Low, limits.High) : null),
             ("Operating hours", session.GetValue<double>(nameof(GetHours)) is { } hours ? hours.ToString("N0", Invariant) + " h" : "-", Text,
                 session.GetValue<double>(nameof(GetDiodeHours)) is { } diodeHours ? diodeHours.ToString("N0", Invariant) + " h on the diode" : null),
-            ("Mode", state is null ? "-" : state.OperatingMode.ToString().ToUpperInvariant(), Text, null),
         };
 
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         var available = ImGui.GetContentRegionAvail().X;
-        var columns = Math.Max(2, Math.Min(tiles.Count, (int)((available + spacing) / (Px(150) + spacing))));
-        var width = (available - spacing * (columns - 1)) / columns;
-        var height = ImGui.GetTextLineHeightWithSpacing() * 2 + ImGui.GetFontSize() * 1.35f + ImGui.GetStyle().ItemSpacing.Y + ImGui.GetStyle().WindowPadding.Y * 2;
+        var width = Px(128);
+        var columns = Math.Max(1, Math.Min(tiles.Count, (int)((available + spacing) / (width + spacing))));
+        var style = ImGui.GetStyle();
+        var height = ImGui.GetFontSize() * (2 + TileValueScale) + style.ItemSpacing.Y * 2 + style.WindowPadding.Y * 2 + Px(2);
         for (int i = 0; i < tiles.Count; i++)
         {
             if (i % columns != 0) ImGui.SameLine();
@@ -341,14 +329,14 @@ internal sealed class ObisLaserPanel
             ("Diode limits", Limits(nameof(GetDiodeTemperatureLimits))),
         };
 
-        var pairs = ImGui.GetContentRegionAvail().X > Px(560) ? 2 : 1;
-        const ImGuiTableFlags Flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.SizingStretchProp;
+        var pairs = ImGui.GetContentRegionAvail().X > Px(480) ? 2 : 1;
+        const ImGuiTableFlags Flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoHostExtendX;
         if (ImGui.BeginTable("##info", pairs * 2, Flags))
         {
             for (int pair = 0; pair < pairs; pair++)
             {
-                ImGui.TableSetupColumn($"Name{pair}", ImGuiTableColumnFlags.WidthStretch, 0.8f);
-                ImGui.TableSetupColumn($"Value{pair}", ImGuiTableColumnFlags.WidthStretch, 1.2f);
+                ImGui.TableSetupColumn($"Name{pair}", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn($"Value{pair}", ImGuiTableColumnFlags.WidthFixed, Px(150));
             }
 
             var perColumn = (rows.Length + pairs - 1) / pairs;
@@ -384,7 +372,7 @@ internal sealed class ObisLaserPanel
     static void DrawSettings(ObisLaserSession session)
     {
         ColoredText(Warning, "These settings are stored in the laser and persist after power cycles.");
-        var labelWidth = Px(170);
+        var labelWidth = Px(110);
         bool? Setting(string command) => session.GetValue<bool>(command);
 
         void Row(string label, string get, string tooltip, Func<bool, CommandPayload> set, CommandPayload query)
@@ -481,7 +469,7 @@ internal sealed class ObisLaserPanel
         ImGui.Checkbox("Follow", ref followLog);
 
         const ImGuiTableFlags Flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp;
-        if (!ImGui.BeginTable("##log", 4, Flags, new Vector2(0, Px(240)))) return;
+        if (!ImGui.BeginTable("##log", 4, Flags, new Vector2(0, Px(180)))) return;
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed);
         ImGui.TableSetupColumn("Command", ImGuiTableColumnFlags.WidthStretch, 1);

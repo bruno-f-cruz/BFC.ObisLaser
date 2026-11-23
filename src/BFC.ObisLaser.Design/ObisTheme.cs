@@ -10,7 +10,7 @@ using ImGui = Hexa.NET.ImGui.ImGui;
 /// </summary>
 internal static class ObisTheme
 {
-    const float FontSize = 15f;
+    const float FontSize = 13f;
     static readonly string FontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "segoeui.ttf");
     static readonly string BoldFontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "segoeuib.ttf");
 
@@ -34,6 +34,17 @@ internal static class ObisTheme
 
     /// <summary>The bold font, or the default font if Segoe UI Bold is not installed.</summary>
     public static ImFontPtr BoldFont => boldFont.IsNull ? ImGui.GetFont() : boldFont;
+
+    /// <summary>
+    /// Pushes the bold font at a multiple of the base font size. ImGui scales pushed sizes by the
+    /// display scale itself, so the size passed is unscaled.
+    /// </summary>
+    public static unsafe void PushBold(float factor = 1f)
+    {
+        var style = ImGui.GetStyle().Handle;
+        var unscaled = ImGui.GetFontSize() / Math.Max(0.01f, style->FontScaleDpi * style->FontScaleMain);
+        ImGui.PushFont(BoldFont, unscaled * factor);
+    }
 
     /// <summary>Converts a size written for 96 DPI to pixels.</summary>
     public static float Px(float logicalPixels) => logicalPixels * dpiScale;
@@ -65,17 +76,17 @@ internal static class ObisTheme
     static unsafe void SetMetrics()
     {
         var style = ImGui.GetStyle().Handle;
-        style->WindowPadding = new Vector2(12f, 12f);
-        style->FramePadding = new Vector2(8f, 4f);
-        style->ItemSpacing = new Vector2(8f, 6f);
-        style->ItemInnerSpacing = new Vector2(6f, 4f);
-        style->CellPadding = new Vector2(8f, 4f);
+        style->WindowPadding = new Vector2(8f, 8f);
+        style->FramePadding = new Vector2(6f, 3f);
+        style->ItemSpacing = new Vector2(6f, 4f);
+        style->ItemInnerSpacing = new Vector2(4f, 4f);
+        style->CellPadding = new Vector2(6f, 2f);
         style->ScrollbarSize = 12f;
-        style->GrabMinSize = 14f;
-        style->FrameRounding = 4f;
-        style->GrabRounding = 4f;
-        style->PopupRounding = 4f;
-        style->ChildRounding = 6f;
+        style->GrabMinSize = 10f;
+        style->FrameRounding = 3f;
+        style->GrabRounding = 3f;
+        style->PopupRounding = 3f;
+        style->ChildRounding = 4f;
         style->ScrollbarRounding = 6f;
         style->WindowBorderSize = 0f;
         style->ChildBorderSize = 0f;
@@ -167,7 +178,6 @@ internal static class ObisTheme
     /// <summary>A muted, uppercase section title.</summary>
     public static void SectionHeader(string text)
     {
-        ImGui.Dummy(new Vector2(0, Px(2)));
         ColoredText(Muted, text.ToUpperInvariant());
     }
 
@@ -182,13 +192,16 @@ internal static class ObisTheme
         return open;
     }
 
+    /// <summary>The size of tile values relative to the font.</summary>
+    public const float TileValueScale = 1.2f;
+
     /// <summary>A labelled value tile, like a dashboard stat.</summary>
     public static void Tile(string id, string label, string value, Vector4 valueColor, Vector2 size, string? detail = null)
     {
         ImGui.PushStyleColor(ImGuiCol.ChildBg, Card);
         ImGui.BeginChild(id, size, ImGuiChildFlags.AlwaysUseWindowPadding, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
         ColoredText(Muted, label);
-        ImGui.PushFont(BoldFont, ImGui.GetFontSize() * 1.35f);
+        PushBold(TileValueScale);
         ColoredText(valueColor, value);
         ImGui.PopFont();
         if (detail is not null) ColoredText(Muted, detail);
@@ -206,7 +219,7 @@ internal static class ObisTheme
         ImGui.PushStyleColor(ImGuiCol.Text, selected ? new Vector4(0.07f, 0.07f, 0.08f, 1f) : color);
         ImGui.PushStyleColor(ImGuiCol.Border, color);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, Px(12f));
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, Px(10f));
         var clicked = ImGui.Button(label);
         ImGui.PopStyleVar(2);
         ImGui.PopStyleColor(5);
@@ -217,13 +230,14 @@ internal static class ObisTheme
     /// <summary>A small, filled status badge.</summary>
     public static void Badge(string text, Vector4 color)
     {
-        var padding = new Vector2(Px(8), Px(2));
+        var padding = new Vector2(Px(7), ImGui.GetStyle().FramePadding.Y);
         var size = ImGui.CalcTextSize(text) + padding * 2;
         var position = ImGui.GetCursorScreenPos();
         var draw = ImGui.GetWindowDrawList();
         draw.AddRectFilled(position, position + size, U32(WithAlpha(color, 0.18f)), size.Y * 0.5f);
         draw.AddRect(position, position + size, U32(WithAlpha(color, 0.6f)), size.Y * 0.5f);
-        ImGui.SetCursorScreenPos(position + padding);
+        ImGui.SetCursorScreenPos(position + new Vector2(padding.X, 0));
+        ImGui.AlignTextToFramePadding();
         ColoredText(color, text);
         ImGui.SetCursorScreenPos(position);
         ImGui.Dummy(size);
@@ -248,7 +262,7 @@ internal static class ObisTheme
     public static bool Switch(string id, bool? on, Vector4 onColor, float heightScale = 1f)
     {
         var height = ImGui.GetFrameHeight() * heightScale;
-        var width = height * 1.8f;
+        var width = height * 1.75f;
         var position = ImGui.GetCursorScreenPos();
         var clicked = ImGui.InvisibleButton(id, new Vector2(width, height)) && on.HasValue;
         var hovered = ImGui.IsItemHovered() && on.HasValue;
@@ -266,7 +280,7 @@ internal static class ObisTheme
         var draw = ImGui.GetWindowDrawList();
         var radius = height * 0.5f;
         draw.AddRectFilled(position, position + new Vector2(width, height), U32(track), radius);
-        var knob = radius - Px(3);
+        var knob = radius - Px(2);
         var center = new Vector2(position.X + radius + t * (width - 2 * radius), position.Y + radius);
         var knobColor = on.HasValue ? new Vector4(0.97f, 0.97f, 0.98f, 1f) : Muted;
         draw.AddCircleFilled(center, knob, U32(knobColor));
