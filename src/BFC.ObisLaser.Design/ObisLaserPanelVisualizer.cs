@@ -67,6 +67,7 @@ public sealed class ObisLaserPanelVisualizer : DialogTypeVisualizer
         }
 
         panel.Session = session;
+        panel.AwaitingChannel = node?.AwaitingChannel ?? false;
         panel.Draw();
     }
 

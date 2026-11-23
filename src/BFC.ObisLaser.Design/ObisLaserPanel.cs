@@ -50,12 +50,15 @@ internal sealed class ObisLaserPanel
     /// <summary>The session of the running workflow, or null when it is not running.</summary>
     public ObisLaserSession? Session { get; set; }
 
+    /// <summary>Whether the workflow runs but the channel of the laser has not arrived yet.</summary>
+    public bool AwaitingChannel { get; set; }
+
     public void Draw()
     {
         var session = Session;
         if (session is null)
         {
-            DrawOffline();
+            DrawOffline(AwaitingChannel);
             return;
         }
 
@@ -72,13 +75,13 @@ internal sealed class ObisLaserPanel
         if (Section("Messages", defaultOpen: false)) DrawLog(session);
     }
 
-    static void DrawOffline()
+    static void DrawOffline(bool awaitingChannel)
     {
         BeginCard("offline");
         PushBold(1.15f);
         ImGui.TextUnformatted("OBIS laser");
         ImGui.PopFont();
-        ColoredText(Muted, "Start the workflow to connect to the laser.");
+        ColoredText(Muted, awaitingChannel ? "No laser is assigned to this panel." : "Start the workflow to connect to the laser.");
         EndCard();
     }
 
