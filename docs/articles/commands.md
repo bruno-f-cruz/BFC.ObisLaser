@@ -4,7 +4,7 @@ title: Commands
 
 # Commands
 
-`CreateCommand` creates the commands sent by `SendCommand`. Select a command with the `Command` property; its parameters, such as `Watts` for `SetPower`, appear below it in the property grid.
+`CreateCommand` creates the commands sent by `Device`. Select a command with the `Command` property; its parameters, such as `Watts` for `SetPower`, appear below it in the property grid.
 
 - **Without an input**, `CreateCommand` creates one command when the workflow starts.
 - **With an input**, it creates one command for each input notification.
@@ -24,9 +24,9 @@ Parameters can be mapped from upstream values, like any Bonsai property. This wo
 
 1. `DoubleProperty` emits its `Value` when the workflow starts and whenever it changes. `Value` is externalized as `Watts`, so it can be edited on the workflow while it runs.
 2. `InputMapping` copies each value into the `Watts` parameter of `CreateCommand`, then triggers it.
-3. `CreateCommand` creates a `SetPower` command with the new value, and `SendCommand` sends it.
+3. `CreateCommand` creates a `SetPower` command with the new value, and `Device` sends it.
 
-Replace `DoubleProperty` with any source of numbers, such as a sensor or a behavior event, to control the power online. `SendCommand` sends commands one at a time; if they arrive faster than the laser can accept them, up to `MaxPendingCommands` wait, and more raise an error so that stale setpoints never pile up.
+Replace `DoubleProperty` with any source of numbers, such as a sensor or a behavior event, to control the power online. `Device` sends commands one at a time: each command waits for the reply to the previous one, or for `Timeout`. Commands arriving in the meantime are queued in order; up to `MaxPendingCommands` can wait, and more raise an error so that stale setpoints never pile up.
 
 ## Available commands
 

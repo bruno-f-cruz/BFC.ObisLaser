@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <WorkflowBuilder Version="2.9.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:rx="clr-namespace:Bonsai.Reactive;assembly=Bonsai.Core" xmlns:obis="clr-namespace:BFC.ObisLaser;assembly=BFC.ObisLaser" xmlns="https://bonsai-rx.org/2018/workflow">
-  <Description>Reads the laser state every second. Set PortName on SendCommand to the port of your laser, e.g. COM3.</Description>
+  <Description>Reads the laser state every second. Set PortName on Device to the port of your laser, e.g. COM3.</Description>
   <Workflow>
     <Nodes>
       <Expression xsi:type="Combinator">
@@ -14,7 +14,7 @@
         <obis:Command xsi:type="obis:GetState" />
       </Expression>
       <Expression xsi:type="Combinator">
-        <Combinator xsi:type="obis:SendCommand">
+        <Combinator xsi:type="obis:Device">
           <obis:PortName>COM3</obis:PortName>
           <obis:Timeout>PT1S</obis:Timeout>
           <obis:MaxPendingCommands>64</obis:MaxPendingCommands>
@@ -22,6 +22,7 @@
       </Expression>
       <Expression xsi:type="obis:ParseReply">
         <obis:Command>GetState</obis:Command>
+        <obis:Channel xsi:nil="true" />
       </Expression>
       <Expression xsi:type="WorkflowOutput" />
     </Nodes>

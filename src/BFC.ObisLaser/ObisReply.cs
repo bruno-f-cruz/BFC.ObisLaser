@@ -4,7 +4,7 @@ using ObisLaser.Net;
 namespace BFC.ObisLaser;
 
 /// <summary>
-/// The reply to an <see cref="ObisCommand"/>, emitted by <see cref="SendCommand"/>.
+/// The reply to an <see cref="ObisCommand"/>, emitted by <see cref="Device"/>.
 /// </summary>
 /// <remarks>
 /// A command rejected by the laser (an <c>ERR</c> reply) is emitted as a reply with
@@ -21,7 +21,7 @@ public sealed class ObisReply
         Duration = duration;
     }
 
-    [Description("The command this reply answers.")]
+    [Description("The command this reply answers, with its name, parameters and channel.")]
     public ObisCommand Command { get; }
 
     [Description("The value read from the laser, or null for commands that only report success and for failed commands. Use ParseReply to obtain typed values.")]

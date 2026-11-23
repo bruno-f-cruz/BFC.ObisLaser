@@ -29,6 +29,15 @@ sealed class FakeLaser : IObisTransport
 
     public List<string> Written { get; } = new();
 
+    /// <summary>Every write ("> command") and read ("&lt; line"), in order.</summary>
+    public List<string> Log { get; } = new();
+
+    /// <summary>Delay before each line is returned, to simulate a slow laser.</summary>
+    public TimeSpan ReplyDelay { get; set; }
+
+    /// <summary>Whether the laser stays silent, to simulate a timeout.</summary>
+    public bool Silent { get; set; }
+
     public bool Disposed { get; private set; }
 
     public static ObisConnection Connect(out FakeLaser laser)
@@ -43,6 +52,8 @@ sealed class FakeLaser : IObisTransport
         {
             var command = text.TrimEnd('\r');
             Written.Add(command);
+            Log.Add("> " + command);
+            if (Silent) return;
             if (Errors.TryGetValue(command, out var code)) output.Enqueue("ERR" + code);
             else if (!command.Contains("?")) output.Enqueue("OK");
             else if (Replies.TryGetValue(command, out var reply))
@@ -56,10 +67,13 @@ sealed class FakeLaser : IObisTransport
 
     public string ReadLine()
     {
+        if (ReplyDelay > TimeSpan.Zero) Thread.Sleep(ReplyDelay);
         lock (gate)
         {
             if (output.Count == 0) throw new TimeoutException();
-            return output.Dequeue();
+            var line = output.Dequeue();
+            Log.Add("< " + line);
+            return line;
         }
     }
 

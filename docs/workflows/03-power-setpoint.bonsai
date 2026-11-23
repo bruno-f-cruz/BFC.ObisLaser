@@ -23,7 +23,7 @@
         </obis:Command>
       </Expression>
       <Expression xsi:type="Combinator">
-        <Combinator xsi:type="obis:SendCommand">
+        <Combinator xsi:type="obis:Device">
           <obis:PortName>COM3</obis:PortName>
           <obis:Timeout>PT1S</obis:Timeout>
           <obis:MaxPendingCommands>64</obis:MaxPendingCommands>

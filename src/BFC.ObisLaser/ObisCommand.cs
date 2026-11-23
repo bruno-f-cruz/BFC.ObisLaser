@@ -5,7 +5,7 @@ namespace BFC.ObisLaser;
 
 /// <summary>
 /// An immutable command for one OBIS laser, created by <see cref="CreateCommand"/> and executed by
-/// <see cref="SendCommand"/>.
+/// <see cref="Device"/>.
 /// </summary>
 /// <remarks>
 /// Parameter values, such as the power of a <see cref="SetPower"/> command, are captured when the

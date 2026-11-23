@@ -4,11 +4,11 @@ title: Replies and errors
 
 # Replies and errors
 
-`SendCommand` emits one `ObisReply` for each command, in the order the commands were sent.
+`Device` emits one `ObisReply` for each command, in the order the commands were sent.
 
 | Property | What it contains |
 | --- | --- |
-| `Command` | The command this reply answers, with its name, parameters and channel |
+| `Command` | The command this reply answers, with its name, parameters (e.g. `SetPower(0.01 W)`) and channel |
 | `Value` | The value read from the laser, or null for commands that only report success |
 | `IsSuccess` | Whether the laser accepted the command |
 | `ErrorCode`, `Error` | The error returned by the laser, for rejected commands |
@@ -26,16 +26,16 @@ title: Replies and errors
 | `GetStatus` | `StatusFlags` |
 | `GetFaults` | `FaultFlags` |
 
-See [commands](commands.md) for the reply value of every command. Because it filters by command, one `SendCommand` can serve several `ParseReply` nodes, for example one for `GetPower` and one for `GetFaults`. Stop and restart after changing `Command`, since the output type changes.
+See [commands](commands.md) for the reply value of every command. Because it filters by command, one `Device` can serve several `ParseReply` nodes, for example one for `GetPower` and one for `GetFaults`. Set `ParseReply.Channel` to keep the replies of one laser behind an OBIS Remote or LaserBox. Stop and restart after changing `Command`, since the output type changes.
 
 ## Rejected commands
 
-The laser rejects commands it cannot execute: a power above its maximum, a command it does not support, or a setting that conflicts with its state. `SendCommand` emits these as replies with `IsSuccess` set to `False` and the laser's error code, such as `-220` for an invalid parameter, so that one invalid setting does not stop a running experiment.
+The laser rejects commands it cannot execute: a power above its maximum, a command it does not support, or a setting that conflicts with its state. `Device` emits these as replies with `IsSuccess` set to `False` and the laser's error code, such as `-220` for an invalid parameter, so that one invalid setting does not stop a running experiment.
 
-To stop on any rejection instead, place `EnsureSuccess` after `SendCommand`:
+To stop on any rejection instead, place `EnsureSuccess` after `Device`:
 
 ```text
-SendCommand → EnsureSuccess → ParseReply
+Device → EnsureSuccess → ParseReply
 ```
 
 ## Errors that stop the workflow

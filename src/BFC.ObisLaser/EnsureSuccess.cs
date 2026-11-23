@@ -8,7 +8,7 @@ namespace BFC.ObisLaser;
 /// Raises a sequence error when the laser rejected a command.
 /// </summary>
 /// <remarks>
-/// <see cref="SendCommand"/> emits rejected commands as replies so that a running experiment is not stopped
+/// <see cref="Device"/> emits rejected commands as replies so that a running experiment is not stopped
 /// by one invalid setting. Place this node after it to stop on any rejection instead.
 /// </remarks>
 [Description("Raises an error when the laser rejected a command.")]
