@@ -18,7 +18,7 @@ namespace BFC.ObisLaser;
 /// Failed replies are skipped; use <see cref="EnsureSuccess"/> upstream to raise an error for them.
 /// </remarks>
 [DefaultProperty(nameof(Command))]
-[WorkflowElementCategory(ElementCategory.Transform)]
+[WorkflowElementCategory(ElementCategory.Combinator)]
 [Description("Emits the typed values of successful replies to one kind of command, ignoring all other replies.")]
 public sealed class ParseReply : SingleArgumentExpressionBuilder, INamedElement
 {

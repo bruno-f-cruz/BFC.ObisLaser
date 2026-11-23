@@ -72,6 +72,16 @@ public class CreateCommandTests
         Assert.True(Assert.IsType<SetAutoStart>(node.Command).Enabled);
     }
 
+    [Theory]
+    [InlineData(typeof(CreateCommand), ElementCategory.Source)]
+    [InlineData(typeof(Device), ElementCategory.Source)]
+    [InlineData(typeof(ParseReply), ElementCategory.Combinator)]
+    public void NodesHaveTheHarpCategories(Type nodeType, ElementCategory expected)
+    {
+        var attribute = (WorkflowElementCategoryAttribute)Attribute.GetCustomAttribute(nodeType, typeof(WorkflowElementCategoryAttribute))!;
+        Assert.Equal(expected, attribute.Category);
+    }
+
     [Fact]
     public void DropDownListsEveryCommand()
     {

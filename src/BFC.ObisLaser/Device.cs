@@ -20,7 +20,7 @@ namespace BFC.ObisLaser;
 /// <see langword="false"/>; timeouts and communication errors raise a sequence error.
 /// </remarks>
 [Combinator]
-[WorkflowElementCategory(ElementCategory.Transform)]
+[WorkflowElementCategory(ElementCategory.Source)]
 [Description("Sends commands to an OBIS laser or controller one at a time, and emits the reply to each.")]
 public sealed class Device
 {
