@@ -118,7 +118,9 @@ public class DeviceTests
     {
         var laser = new FakeLaser();
         await Run(Commands(new GetPower()), laser).ToList();
-        Assert.True(laser.Disposed);
+
+        // The port is closed right after completion is delivered, possibly on another thread.
+        Assert.True(SpinWait.SpinUntil(() => laser.Disposed, TimeSpan.FromSeconds(1)));
     }
 
     [Fact]
