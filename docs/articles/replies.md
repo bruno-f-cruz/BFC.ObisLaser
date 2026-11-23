@@ -44,7 +44,7 @@ These always raise a sequence error:
 
 - **No reply within `Timeout`**: the laser is off, disconnected, or on another channel.
 - **The port cannot be opened**: it does not exist or another program is using it.
-- **Too many pending commands**: more than `MaxPendingCommands` commands waiting to be sent.
+- **Too many pending commands**: more than 64 commands waiting to be sent.
 - **Invalid command parameters**, such as a negative power, raised by `CreateCommand` before anything is sent.
 
 ## Laser faults

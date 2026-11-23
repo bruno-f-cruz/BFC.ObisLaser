@@ -26,7 +26,6 @@
         <Combinator xsi:type="obis:Device">
           <obis:PortName>COM3</obis:PortName>
           <obis:Timeout>PT1S</obis:Timeout>
-          <obis:MaxPendingCommands>64</obis:MaxPendingCommands>
         </Combinator>
       </Expression>
       <Expression xsi:type="WorkflowOutput" />

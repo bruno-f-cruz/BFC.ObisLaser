@@ -13,7 +13,8 @@ namespace BFC.ObisLaser;
 /// </summary>
 /// <remarks>
 /// Commands are sent one at a time: each command waits for the reply to the previous one, or for
-/// <see cref="Timeout"/>. Commands arriving in the meantime are queued in order. The port is closed
+/// <see cref="Timeout"/>. Commands arriving in the meantime are queued in order; more than 64 waiting
+/// commands raise an error, so that stale commands never pile up. The port is closed
 /// when the workflow stops. To send commands from several places, merge them into one subject that
 /// feeds this node, and publish the replies through another subject.
 /// Commands rejected by the laser are emitted as replies with <see cref="ObisReply.IsSuccess"/> set to
@@ -41,8 +42,9 @@ public sealed class Device
         set => Timeout = XmlConvert.ToTimeSpan(value);
     }
 
-    [Description("The maximum number of commands waiting for their turn. Exceeding it raises an error, so that stale commands never pile up. Read when the workflow starts.")]
-    public int MaxPendingCommands { get; set; } = 64;
+    // The maximum number of commands waiting for their turn. Exceeding it raises an error, so that
+    // stale commands never pile up. Settable only for tests.
+    internal int MaxPendingCommands { get; set; } = 64;
 
     public IObservable<ObisReply> Process(IObservable<ObisCommand> source) =>
         Process(source, () => Open(PortName, Timeout));
