@@ -42,6 +42,52 @@ public class ObisLaserVisualizerTests
     }
 
     [Fact]
+    public void TheChannelInputChoosesTheLaserWhileTheWorkflowRuns()
+    {
+        var node = new ObisLaserVisualizer { Channel = 5 };
+        using var replies = new Subject<ObisReply>();
+        using var channel = new Subject<int>();
+        var commands = new List<ObisCommand>();
+        using var subscription = node.Process(replies, channel).Subscribe(commands.Add);
+
+        Assert.True(node.AwaitingChannel);
+        Assert.Null(node.Session);
+
+        channel.OnNext(2);
+        Assert.False(node.AwaitingChannel);
+        var first = node.Session!;
+        Assert.Equal(2, first.Channel);
+        Assert.True(first.Send(new GetPower()));
+        Assert.Equal(2, Assert.Single(commands).Channel);
+
+        replies.OnNext(Reply(new GetPower(), 2, 0.005));
+        replies.OnNext(Reply(new GetPower(), 5, 0.010));
+        Assert.Equal("0.005", Assert.Single(first.GetLog()).Value);
+
+        channel.OnNext(2);
+        Assert.Same(first, node.Session);
+
+        channel.OnNext(3);
+        Assert.NotSame(first, node.Session);
+        Assert.Equal(3, node.Session!.Channel);
+        Assert.Empty(node.Session.GetLog());
+    }
+
+    [Fact]
+    public void TheChannelInputSessionEndsWithTheWorkflow()
+    {
+        var node = new ObisLaserVisualizer();
+        using var channel = new BehaviorSubject<int>(1);
+        using (node.Process(Observable.Never<ObisReply>(), channel).Subscribe())
+        {
+            Assert.Equal(1, node.Session!.Channel);
+        }
+
+        Assert.Null(node.Session);
+        Assert.False(node.AwaitingChannel);
+    }
+
+    [Fact]
     public void RepliesOfOtherChannelsAreIgnored()
     {
         var node = new ObisLaserVisualizer { Channel = 1 };

@@ -39,3 +39,7 @@ Values the laser does not support, which depends on its model and firmware, are 
 Set `Disable` on `ObisLaserVisualizer` to make its dashboard read-only, for example to monitor a laser that an experiment controls. The dashboard still shows the laser and can poll and refresh its state, but its controls for emission, power, mode, settings, fault recovery and the error queue are disabled, and the node sends no command that could change the laser. A READ-ONLY badge is shown in the header. `Disable` can be changed while the workflow runs, for example from a property mapping.
 
 To control several lasers, add one `ObisLaserVisualizer` per laser, each with its own `Channel`.
+
+## Choose the laser while the workflow runs
+
+When the channel is only known once the workflow runs, for example from the devices found by `FindDevices`, connect the channel to a second input of `ObisLaserVisualizer`. `Channel` is then ignored: the panel shows "No laser is assigned to this panel" until the first channel arrives, and each new channel starts a new session, which requests the device information and state again.
