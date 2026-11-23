@@ -23,7 +23,7 @@ public class WorkflowTests
     [Fact]
     public void ExamplesAreFound()
     {
-        Assert.Equal(5, Examples().Count());
+        Assert.Equal(6, Examples().Count());
     }
 
     static WorkflowBuilder Load(string fileName)

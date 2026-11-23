@@ -34,9 +34,11 @@ The laser rejects commands it cannot execute: a power above its maximum, a comma
 
 To stop on any rejection instead, place `EnsureSuccess` after `Device`:
 
-```text
-Device → EnsureSuccess → ParseReply
-```
+:::workflow
+![Stop on rejected commands](~/workflows/06-ensure-success.bonsai)
+:::
+
+[Download the workflow](~/workflows/06-ensure-success.bonsai).
 
 ## Errors that stop the workflow
 

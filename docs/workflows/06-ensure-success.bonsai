@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WorkflowBuilder Version="2.9.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:rx="clr-namespace:Bonsai.Reactive;assembly=Bonsai.Core" xmlns:obis="clr-namespace:BFC.ObisLaser;assembly=BFC.ObisLaser" xmlns="https://bonsai-rx.org/2018/workflow">
+  <Description>Reads the laser power every second and stops the workflow if the laser rejects a command. Set PortName on Device.</Description>
+  <Workflow>
+    <Nodes>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Timer">
+          <rx:DueTime>PT0S</rx:DueTime>
+          <rx:Period>PT1S</rx:Period>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="obis:CreateCommand">
+        <obis:Channel>0</obis:Channel>
+        <obis:Command xsi:type="obis:GetPower" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="obis:Device">
+          <obis:PortName>COM3</obis:PortName>
+          <obis:Timeout>PT1S</obis:Timeout>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="obis:EnsureSuccess" />
+      </Expression>
+      <Expression xsi:type="obis:ParseReply">
+        <obis:Command>GetPower</obis:Command>
+        <obis:Channel xsi:nil="true" />
+      </Expression>
+      <Expression xsi:type="WorkflowOutput" />
+    </Nodes>
+    <Edges>
+      <Edge From="0" To="1" Label="Source1" />
+      <Edge From="1" To="2" Label="Source1" />
+      <Edge From="2" To="3" Label="Source1" />
+      <Edge From="3" To="4" Label="Source1" />
+      <Edge From="4" To="5" Label="Source1" />
+    </Edges>
+  </Workflow>
+</WorkflowBuilder>

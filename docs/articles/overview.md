@@ -4,12 +4,13 @@ uid: overview
 
 BFC.ObisLaser lets you control Coherent OBIS LX/LS lasers from Bonsai: read device information and state, set power and operating mode, turn emission on and off, and change persistent settings.
 
-Every interaction with a laser is a message. `CreateCommand` creates a command, `Device` sends it to the laser and emits the reply, and `ParseReply` extracts typed values from replies. This is the same pattern as Harp devices:
+Every interaction with a laser is a message. `CreateCommand` creates a command, `Device` sends it to the laser and emits the reply, and `ParseReply` extracts typed values from replies. This is the same pattern as Harp devices. For example, this workflow reads the laser state every second:
 
-```text
-Timer → CreateCommand → Device → ParseReply
-        (GetState)      (COM3)   (GetState → LaserState)
-```
+:::workflow
+![Read the laser state](~/workflows/01-read-state.bonsai)
+:::
+
+`Timer` triggers `CreateCommand`, which creates a `GetState` command; `Device` sends it to the laser on its serial port and emits the reply; `ParseReply` emits the `LaserState` it contains.
 
 These guides assume the package is installed in your Bonsai environment and that the laser is connected over USB or RS-232. Coherent's USB driver, installed with Coherent Connection, makes the laser appear as a serial port such as `COM3`.
 
