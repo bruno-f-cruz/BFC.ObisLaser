@@ -4,7 +4,7 @@ Bonsai operators to control Coherent OBIS LX/LS lasers over USB or RS-232: read 
 
 The package uses a message-based design:
 
-- `CreateCommand` creates commands. Select the command from a drop-down, such as `SetPower`, `SetEmission`, `GetState` or `GetInfo`; its parameters appear alongside it and can be mapped from upstream values.
+- `CreateCommand` creates commands. Select the command from a drop-down, such as `SetPower`, `SetEmission`, `GetState` or `GetInfo`; its parameters appear alongside it and can be mapped from upstream values. In code, create one with `payload.CreateCommand(channel)`, e.g. `new Query { Text = "SYST:INF:MOD?" }.CreateCommand(2)`.
 - `Device` opens the serial port of a laser or controller, sends each command and emits its reply, which contains the command. Commands are sent one at a time: each waits for the previous reply, or for the configurable `Timeout`, and commands arriving in the meantime are queued in order.
 - `ParseReply` emits the typed values of one kind of reply, such as `LaserState` for `GetState`.
 - `EnsureSuccess` raises an error for commands rejected by the laser, which are otherwise emitted as data.
