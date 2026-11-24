@@ -16,7 +16,15 @@ public abstract class CommandPayload
 
     internal abstract Type? ResultType { get; }
 
-    internal abstract ObisCommand CreateCommand(int channel);
+    /// <summary>
+    /// Creates the command for the laser on <paramref name="channel"/>, to be sent to a <see cref="Device"/>.
+    /// Parameter values are captured now, as in <see cref="BFC.ObisLaser.CreateCommand"/>.
+    /// </summary>
+    /// <param name="channel">The laser channel: 0 for a laser connected directly, 1 or more for lasers behind an OBIS
+    /// Remote or LaserBox.</param>
+    /// <returns>The command.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The channel is not between 0 and 254.</exception>
+    public abstract ObisCommand CreateCommand(int channel);
 
     public override string ToString() => Name;
 }
@@ -33,7 +41,7 @@ public abstract class QueryPayload<T> : CommandPayload
 
     internal override Type? ResultType => typeof(T);
 
-    internal override ObisCommand CreateCommand(int channel)
+    public override ObisCommand CreateCommand(int channel)
     {
         var query = CreateQuery();
         return new ObisCommand(Name, ToString(), channel, typeof(T), laser => query(laser));
@@ -54,7 +62,7 @@ public abstract class ActionPayload : CommandPayload
 
     internal override Type? ResultType => null;
 
-    internal override ObisCommand CreateCommand(int channel)
+    public override ObisCommand CreateCommand(int channel)
     {
         var action = CreateAction();
         return new ObisCommand(Name, ToString(), channel, null, laser =>

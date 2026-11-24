@@ -65,6 +65,19 @@ public class DeviceTests
     }
 
     [Fact]
+    public async Task RawQueriesCreatedInCodeAreSentToTheirChannel()
+    {
+        var laser = new FakeLaser();
+        var command = new Query { Text = "SOUR:POW:LEV?" }.CreateCommand(2);
+        var reply = await Run(Observable.Return(command), laser).SingleAsync();
+
+        Assert.Equal("SOUR2:POW:LEV?", laser.Written.Last(text => !text.Contains(":AM:STAT")));
+        Assert.Same(command, reply.Command);
+        Assert.True(reply.IsSuccess);
+        Assert.NotEmpty(Assert.IsAssignableFrom<IReadOnlyList<string>>(reply.Value));
+    }
+
+    [Fact]
     public async Task RejectedCommandsAreEmittedAsFailedReplies()
     {
         var laser = new FakeLaser();
